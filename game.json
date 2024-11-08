@@ -1,0 +1,50 @@
+{
+    "Bridge Color": {
+        "type": "color",
+        "value": 3094825215
+    },
+    "Deep Water Color": {
+        "type": "color",
+        "value": 1034999551
+    },
+    "From Color": {
+        "type": "color",
+        "value": 1862307327
+    },
+    "Grass Color": {
+        "type": "color",
+        "value": 2969552639
+    },
+    "Level Height": {
+        "type": "number",
+        "value": 18.0
+    },
+    "Level Width": {
+        "type": "number",
+        "value": 34.0
+    },
+    "Player Color": {
+        "type": "color",
+        "value": 4288348415
+    },
+    "Pond Expansion Chance": {
+        "type": "number",
+        "value": 90.0
+    },
+    "Pond Expansion Tiles": {
+        "type": "number",
+        "value": 20.0
+    },
+    "Shallow Water Color": {
+        "type": "color",
+        "value": 1288237567
+    },
+    "To Color": {
+        "type": "color",
+        "value": 570436607
+    },
+    "Tree Color": {
+        "type": "color",
+        "value": 1711247615
+    }
+}
