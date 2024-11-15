@@ -1,50 +1,134 @@
 {
+    "BG From Color": {
+        "type": "color",
+        "value": 756630783
+    },
+    "BG To Color": {
+        "type": "color",
+        "value": 486946303
+    },
     "Bridge Color": {
         "type": "color",
         "value": 3094825215
+    },
+    "Color Amethyst": {
+        "type": "color",
+        "value": 2792541951
+    },
+    "Color Bone": {
+        "type": "color",
+        "value": 2929499391
+    },
+    "Color Iris": {
+        "type": "color",
+        "value": 2945253375
+    },
+    "Color Marigold": {
+        "type": "color",
+        "value": 3567659007
+    },
+    "Color Peridot": {
+        "type": "color",
+        "value": 3052494591
+    },
+    "Color Rose": {
+        "type": "color",
+        "value": 3999030527
+    },
+    "Color Ruby": {
+        "type": "color",
+        "value": 3678158079
     },
     "Deep Water Color": {
         "type": "color",
         "value": 1034999551
     },
-    "From Color": {
+    "Enemy Turn Pause": {
+        "type": "number",
+        "value": 0.10000000149011612
+    },
+    "Floor Color": {
         "type": "color",
-        "value": 1862307327
+        "value": 340007935
+    },
+    "Gold Color": {
+        "type": "color",
+        "value": 3335014399
     },
     "Grass Color": {
         "type": "color",
-        "value": 2969552639
+        "value": 610350847
     },
-    "Level Height": {
-        "type": "number",
-        "value": 18.0
+    "Health Color": {
+        "type": "color",
+        "value": 2655274239
     },
-    "Level Width": {
+    "Menu Color": {
+        "type": "color",
+        "value": 255
+    },
+    "Menu Outline Color": {
+        "type": "color",
+        "value": 3183328767
+    },
+    "Menu Shadow Color": {
+        "type": "color",
+        "value": 140
+    },
+    "Message Time": {
         "type": "number",
-        "value": 34.0
+        "value": 2.0
+    },
+    "Pause Long": {
+        "type": "number",
+        "value": 1.0
+    },
+    "Pause Short": {
+        "type": "number",
+        "value": 1.0
     },
     "Player Color": {
         "type": "color",
-        "value": 4288348415
+        "value": 4170998527
     },
-    "Pond Expansion Chance": {
+    "Pond Grow Chance": {
         "type": "number",
         "value": 90.0
     },
-    "Pond Expansion Tiles": {
+    "Pond Grow Dropoff": {
+        "type": "number",
+        "value": 5.0
+    },
+    "Pond Grow Tiles": {
         "type": "number",
         "value": 20.0
+    },
+    "Room Min Size": {
+        "type": "number",
+        "value": 4.0
+    },
+    "Room Padding": {
+        "type": "number",
+        "value": 1.0
     },
     "Shallow Water Color": {
         "type": "color",
         "value": 1288237567
     },
-    "To Color": {
+    "Tile Size": {
+        "type": "number",
+        "value": 16.0
+    },
+    "Tool Color": {
         "type": "color",
-        "value": 570436607
+        "value": 1750664447
     },
     "Tree Color": {
         "type": "color",
-        "value": 1711247615
+        "value": 2213716735
+    },
+    "Visor Color": {
+        "type": "color",
+        "value": 230
     }
 }

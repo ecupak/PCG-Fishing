@@ -1,0 +1,18 @@
+lower detection range
+
+rod = body stats
+bobber = triggers
+hook = attack ability
+
+rose/ruby = health
+
+peridot = push?
+marigold = half of gold heals equivalent hp % (collect only half of gold)
+
+iris = speed
+iris toggle = first strike (after moving, if enemy adjacent in same dir, attack immediately).
+iris rod = collect key and open door does not cost a turn
+iris hook = auto pickup enemy loot on defeat
+
+
+look for all checkTile and make sure they pass a [[]] list of lists

@@ -13,8 +13,8 @@ class Background {
     update(dt) { _time = _time + dt }
 
     render() {
-        var fromColor = Data.getColor("From Color")
-        var toColor = Data.getColor("To Color")
+        var fromColor = Data.getColor("BG From Color")
+        var toColor = Data.getColor("BG To Color")
         fromColor = Color.fromNum(fromColor)
         toColor = Color.fromNum(toColor)
         for(i in 0...16) {            

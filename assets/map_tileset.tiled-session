@@ -1,0 +1,25 @@
+{
+    "activeFile": "monochrome-transparent_packed.tsx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "monochrome-transparent_packed.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        }
+    },
+    "last.imagePath": "C:/Users/Erik at BUas/Projects/ZGit/fishing/assets",
+    "openFiles": [
+        "monochrome-transparent_packed.tsx"
+    ],
+    "project": "map_tileset.tiled-project",
+    "recentFiles": [
+        "monochrome-transparent_packed.tsx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}
