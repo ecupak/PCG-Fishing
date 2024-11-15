@@ -393,7 +393,7 @@ class Hero is Character {
         inventory.add(SType.i_shovel, 2)
 
         inventory.add(SType.i_marigold, 1)
-        inventory.add(SType.i_coin, 1)
+        inventory.add(SType.i_coin, 150)
         inventory.add(SType.i_peridot, 1)
         inventory.add(SType.i_bone, 1)
         inventory.add(SType.i_rose, 1)

@@ -349,6 +349,17 @@ class Gameplay {
         Hero.hero.resetState(world_state)
     }
 
+    /// When hero uses the bus: load a new overworld.
+    static travel() {
+        for (e in Entity.entities) if (e.tag != SType.player) e.delete()
+        Entity.update(0) // Flush deleted entities out of system.
+
+        var hero_start = overworld_level.build()
+        Hero.hero.owner.get(overworld_overtiles).place(hero_start)
+
+        Gameplay.message = "Traveled to a new land"
+    }
+
     /// When hero dies: erase all entities and begin anew.
     static startOver() {
         for (e in Entity.entities) e.delete()
@@ -364,7 +375,7 @@ class Gameplay {
 
         // Create overworld and place hero.
         Create.hero()
-        var hero_start = overworld_level.build()        
+        var hero_start = overworld_level.build()
         var hero_tile = overworld_overtiles.new(hero_start.x, hero_start.y)
         Hero.hero.owner.add(hero_tile)
         

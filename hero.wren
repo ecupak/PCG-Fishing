@@ -21,6 +21,10 @@ class Inventory {
         if (get(key) < min) _contents[key] = min
     }
 
+    set(key, amount) {
+        _contents[key] = amount
+    }
+
     contents {_contents}
 }
 

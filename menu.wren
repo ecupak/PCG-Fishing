@@ -254,7 +254,9 @@ class MainMenu is MenuState{
                 Gameplay.message = "TODO"
             }
 
-            return getPreviousMenu(menu)
+            if (idxs[menu.cursor_idx] == 3) {
+                return getPreviousMenu(menu)
+            }
         }
 
         if (dir >= 0) {
@@ -374,19 +376,20 @@ class InnMenu is MenuState{
 /// The "enter" mode.
     construct new(menu) {
         super()
-        _costs = [5 * Hero.her.level]
+        _costs = [5 * Hero.hero.level, 30]
 
         _items = []
         _items.add("Room: %(_costs[0]) gp")
+        _items.add("Bus: %(_costs[1]) gp")
         // Return
         
         for (i in 0...(_items.count + 1)) idxs.add(i + 1)
         
         _gap = 20
 
-        width = 140
+        width = 130
         height = (_items.count + 2) * _gap + menu.padding * 2
-        x = 40
+        x = 30
 
         calculateCenter()
         createBG()
@@ -399,7 +402,14 @@ class InnMenu is MenuState{
 
         if (action == 1) {
             if (idxs[menu.cursor_idx] == 1) {
-                Hero.hero.inventory.add(SType.i_coin, -(_costs[0]))            
+                Hero.hero.inventory.add(SType.i_coin, -(_costs[0]))
+                Hero.hero.stats.health = Hero.hero.max_hp
+                Gameplay.message = "Recovered full health"
+            }
+
+            if (idxs[menu.cursor_idx] == 2) {
+                Hero.hero.inventory.add(SType.i_coin, -(_costs[1]))                
+                Gameplay.travel()
             }
 
             return getPreviousMenu(menu)
@@ -424,12 +434,12 @@ class InnMenu is MenuState{
         // Title
         var count = 0
         var gold = Hero.hero.inventory.get(SType.i_coin)
-        Render.text(menu.font, "Rent- %(gold) gp", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
+        Render.text(menu.font, "Inn- %(gold) gp", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
 
         // List.        
         count = count + 1
         for (i in 0..._items.count) {
-            var color = (gold >= _costs[i] ? 0xFFFFFF : 0xA2A2A2FF)
+            var color = (gold >= _costs[i] ? 0xFFFFFFFF : 0xA2A2A2FF)
             if (gold >= _costs[i]) idxs.add(count)
 
             Render.text(menu.font, _items[i], xi, yi - count * _gap, 1.0, color, 0x0, Render.spriteNone)
@@ -449,7 +459,13 @@ class ShopMenu is MenuState{
 /// The "enter" mode.
     construct new(menu) {
         super()
-        _costs = [50, 100, 50]
+
+        var durabilities = [Hero.hero.inventory.get(SType.i_axe), Hero.hero.inventory.get(SType.i_pick), Hero.hero.inventory.get(SType.i_shovel)]
+
+        _costs = [5, 10, 5]
+        for (i in 0...durabilities.count) {
+            _costs[i] = (10 - durabilities[i]) * _costs[i]
+        }
 
         _items = []
         _items.add("Axe: %(_costs[0]) gp")
@@ -476,17 +492,23 @@ class ShopMenu is MenuState{
 
         if (action == 1) {
             if (idxs[menu.cursor_idx] == 1) {
-                Hero.hero.inventory.add(SType.i_coin, -(_costs[0]))
+                Hero.hero.inventory.add(SType.i_coin, -(_costs[0]))                
+                Hero.hero.inventory.set(SType.i_axe, 10)
+                Gameplay.message = "Restored axe to full durability"
                 return getPreviousMenu(menu)
             }
 
             if (idxs[menu.cursor_idx] == 2) {
                 Hero.hero.inventory.add(SType.i_coin, -(_costs[1]))
+                Hero.hero.inventory.set(SType.i_pick, 10)
+                Gameplay.message = "Restored pick to full durability"
                 return getPreviousMenu(menu)
             }
 
             if (idxs[menu.cursor_idx] == 3) {
                 Hero.hero.inventory.add(SType.i_coin, -(_costs[2]))
+                Hero.hero.inventory.set(SType.i_shovel, 10)
+                Gameplay.message = "Restored shovel to full durability"
                 return getPreviousMenu(menu)
             }
             return getPreviousMenu(menu)
@@ -516,7 +538,7 @@ class ShopMenu is MenuState{
         // List.        
         count = count + 1
         for (i in 0..._items.count) {
-            var color = (gold >= _costs[i] ? 0xFFFFFF : 0xA2A2A2FF)
+            var color = (gold >= _costs[i] ? 0xFFFFFFFF : 0xA2A2A2FF)
             if (gold >= _costs[i]) idxs.add(count)
 
             Render.text(menu.font, _items[i], xi, yi - count * _gap, 1.0, color, 0x0, Render.spriteNone)

@@ -909,7 +909,7 @@ class Dungeon is Level {
         Render.dbgColor(0xFFFFFFFF)
         for (room in _rooms) {
             var pix2 = calculatePos(room.min.x, room.max.y)            
-            Render.text(font, "%(room.id)", pix2.x, pix2.y, 1.0, 0xFFFF00FF, 0x0, Render.spriteCenter)
+            Render.text(font, "%(room.id)", pix2.x, pix2.y + 10, 1.0, 0xFFFF00FF, 0x0, Render.spriteCenter)
         }
     }
 }
