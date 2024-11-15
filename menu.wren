@@ -250,7 +250,8 @@ class MainMenu is MenuState{
             }
 
             if (idxs[menu.cursor_idx] == 2) {
-                return [2, CraftingMenu, menu.cursor_idx]
+                //return [2, CraftingMenu, menu.cursor_idx]
+                Gameplay.message = "TODO"
             }
 
             return getPreviousMenu(menu)
