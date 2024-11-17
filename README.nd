@@ -1,3 +1,11 @@
-Fish in the lake to enter a dungeon. The deeper the water, the harder the fight.
+Fish in the lake to enter a dungeon. The deeper the water, the harder the fight. 
+
+While in a dungeon, you have limited air. You die if you run out of air or HP. Find the map to escape.
+
+Kill enemies to level up. Collect resources --- for a gear crafting system that does not exist!
+
+This game is not balanced. Playtesting has been minimal.
+
+I made some edits to a few of the xs modules by expanding functionality of some things. You'll need to use my copy of the modules for this to work.
 
 Arrow keys to move. E to confirm / open context menu. Q to cancel / open common menu.
