@@ -35,6 +35,8 @@ class Create {
             DType.e_gator: Stats.new(4, 5, 3, 0.7),
         }
         __itemNames = {
+            0: "???",
+            
             SType.i_key: "Key",
             SType.i_coin: "Coin",
 
@@ -91,7 +93,7 @@ class Create {
         return entity
     }
 
-    static hero() {
+    static hero(start_mode) {
         var entity = Entity.new()
 
         var transform = Transform.new(Vec2.new())
@@ -99,13 +101,20 @@ class Create {
 
         var hero = Hero.new()
         entity.add(hero)
-        
+
         var stats = Stats.new(10, 4, 0, 0)
+        if (start_mode == 1) {
+            stats.damage = 3
+            stats.armor = 1
+        } else if (start_mode == 2) {
+            stats.health = 7
+            stats.damage = 5
+        }
         entity.add(stats)
         
         entity.tag = SType.player
         entity.layer = Layer.shared
-        System.print("Hero tag: %(entity.tag)")
+        
         entity.name = "Hero"
         
         return entity

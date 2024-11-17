@@ -153,9 +153,8 @@ class Overworld is Level {
                 break
             } // Check if fork is outside pond boundary.
         } // Check all forks.
-
+        
         if (pos == null) {
-            System.print("OOPS")
             var fork = Vec2.new(1, height / 2)
             var dir = Directions[0]
             

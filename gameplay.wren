@@ -248,7 +248,7 @@ class Gameplay {
 
         // Start!
         __menu = Menu.new()
-        beginGame()
+        beginGame(0)
     }
 
     static update(dt) {
@@ -259,10 +259,7 @@ class Gameplay {
         }
 
         // Menu blocks game loop from happening.
-        if (__menu.active) {
-            __menu.update()
-            return
-        }
+        if (__menu.update()) return
 
         // Game loop - overworld and dungeon.
         if (__world_state == overworld_state) {
@@ -361,20 +358,20 @@ class Gameplay {
     }
 
     /// When hero dies: erase all entities and begin anew.
-    static startOver() {
+    static startOver(start_mode) {
         for (e in Entity.entities) e.delete()
         Entity.update(0) // Flush deleted entities out of system.
 
-        beginGame()
+        beginGame(start_mode)
     }
 
     /// Start of every new game, set hero in overworld.
-    static beginGame() {       
+    static beginGame(start_mode) {       
         // Start in overworld state.
         __world_state = overworld_state
 
         // Create overworld and place hero.
-        Create.hero()
+        Create.hero(start_mode)
         var hero_start = overworld_level.build()
         var hero_tile = overworld_overtiles.new(hero_start.x, hero_start.y)
         Hero.hero.owner.add(hero_tile)
@@ -427,9 +424,7 @@ class Gameplay {
         }
 
         // Menu.
-        if (__menu.active) {
-            __menu.render()
-        }
+        __menu.render()
     }
 
     /// Draw the tiles on the map. Detemine if tile is from shared layer or default level's layer.

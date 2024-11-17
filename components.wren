@@ -1,7 +1,7 @@
 import "xs_ec" for Entity, Component
 import "xs" for Data, Input, Render
 import "xs_math"for Math, Bits, Vec2, Color
-import "xs_containers" for Grid, SparseGrid, Queue
+import "xs_containers" for Grid, SparseGrid, Queue, RingBuffer
 import "xs_tools" for Tools
 
 class LevelTile { // under tile
@@ -379,7 +379,8 @@ class Hero is Character {
                     Input.keyLeft]
         
         // Hero data.
-        _inventory = Inventory.new()
+        _inventory = Inventory.new() // regular items and tools
+        _parts = {} // int : part // parts and perks; too many to store as bitflags
         _state = HeroWalking
         _prev_overworld_pos = Vec2.new()
         _air = 100
@@ -393,7 +394,7 @@ class Hero is Character {
         inventory.add(SType.i_shovel, 2)
 
         inventory.add(SType.i_marigold, 1)
-        inventory.add(SType.i_coin, 150)
+        inventory.add(SType.i_coin, 50)
         inventory.add(SType.i_peridot, 1)
         inventory.add(SType.i_bone, 1)
         inventory.add(SType.i_rose, 1)
@@ -572,6 +573,12 @@ class Monster is Character {
 
     /// An algorithm to fill the level with the directions to the hero    
     static floodFill() {
+        if (__ring == null) {
+            __ring = RingBuffer.new(4, 0)            
+            __ring.push(1)
+            __ring.push(2)
+            __ring.push(3)
+        }
         if(Hero.hero) {
             var hero = Hero.hero.tile
             var open = Queue.new()
@@ -586,15 +593,17 @@ class Monster is Character {
                 var cur_count = count.pop()
                 if (cur_count >= max_count) continue // Only look a controlled number of spaces out.
                 for(i in 0...4) {
-                    var nghb = next + Directions[i]
+                    var dir = __ring.read()
+                    var nghb = next + Directions[dir]
                     if(Gameplay.current_level.contains(nghb.x, nghb.y) && !__fill.has(nghb.x, nghb.y)) {
                         if (!Gameplay.checkTile(nghb, DType.obstacle, Layer.dungeon) && !Gameplay.checkTile(nghb, SType.items, Layer.shared)) {
-                            __fill[nghb.x, nghb.y] = (i + 2) % 4 // Opposite direction 
+                            __fill[nghb.x, nghb.y] = (dir + 2) % 4 // Opposite direction 
                             open.push(nghb)
                             count.push(cur_count + 1)
                         }
                     }                     
                 }
+                __ring.read() // Cause the next direction/neighbor loop to start at a different index. Will still complete all checks.
             }   
         }
     }

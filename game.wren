@@ -21,6 +21,7 @@ class Game {
         DungeonTile.initialize()
         Tools.initialize()
         Create.initialize()
+        PartMaker.initialize()
         Gameplay.initialize()
         
         __time = 0        
@@ -71,4 +72,5 @@ class Game {
 
 /// Import classes from other files that might have circular dependencies (import each other)
 import "create" for Create
+import "parts" for PartMaker
 import "gameplay" for Level, OverworldTile, DungeonTile, Gameplay

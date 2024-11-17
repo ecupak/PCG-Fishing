@@ -40,6 +40,10 @@ class SType {
 
     static i_map        { 1 << 17 }
 
+    static i_pole       { 1 << 18 }
+    static i_bobber     { 1 << 19 }
+    static i_hook       { 1 << 20 }
+
     // Combinations.
     static tools        { i_rod | i_axe | i_shovel | i_pick }
     static flowers      { i_rose | i_marigold | i_iris }

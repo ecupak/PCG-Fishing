@@ -1,6 +1,5 @@
 import "xs" for Data, Render, Input
-import "xs_math" for Math, Vec2, Bits
-import "xs_tools" for Tools
+import "xs_math" for Math, Vec2
 
 class Menu {
     /// Open starting menus.
@@ -35,6 +34,7 @@ class Menu {
     prev_menu { 0 }
     same_menu { 1 }
     next_menu { 2 }
+    exit_menu { 3 }
 
     /// Create menu. Acts as singleton, can be called by/from anywhere after creation.
     construct new() {
@@ -49,809 +49,466 @@ class Menu {
                     Input.keyDown,
                     Input.keyLeft]
         
-        // Menu properties.
-        _font = Render.loadFont("[game]/assets/FutilePro.ttf", 14)
-        _padding = 2
-        _state = null
-        _cursor_idx = 0
-        _stack = [] // Holds previous menu and cursor_idx
+        // Holds previous menu information
+        _menus = [] 
+
+        // Current/Active menu.
+        _menu = null
         
         // Singleton.
         __menu = this
     }
 
-    begin(new_state) {        
-        _cursor_idx = 0
-        _state = new_state.new(this)
-        active = true
+    /// Menu initializer, called by outside classes accessing singleton.
+    begin(new_menu) {
+        if (BaseMenu.is_initialized != true) BaseMenu.initialize()
+        if (SubMenu.is_initialized != true) SubMenu.initialize()
+
+        _menus.add(new_menu.new(0))
+        _menu = _menus[_menus.count - 1]
+        _menu.enter()
+        
+        _active = true
     }
 
-    /// Update calls the current state's handleInput(). Changes state if a new state is returned.
+    /// Update calls the current menu's handleInput().
     update() {
+        if (!_active) return false
+
+        // Get player input and menu results.
         var action = getAction()
         var dir = getDirection()
-        var next_state = _state.handleInput(this, action, dir) // return [(0 back, 1 stay, 2 new), state, cursor_idx] :: thus [false, state, ...] means look at the stack and [false, null, ...] means menu is done.
+        var menu_result = _menu.handleInput(this, action, dir) // Returns [next, next menu, current menu cursor index] | [previous] | [same] | [exit]
         
-        // Go to next menu.
-        if (next_state[0] == next_menu) { // is true
-            System.print(next_state)
+        // Process results...
+        // - Go to next menu.
+        if (menu_result[0] == next_menu) {
+            _menu.exit()
+            _menus.add(menu_result[1].new(0)) // Set new state.
+            _menu = _menus[_menus.count - 1]
+            _menu.enter()
 
-            _state.exit(this)
+        // - Go back to previous menu.
+        } else if (menu_result[0] == prev_menu) {
+            _menu.exit()
+            _menus.removeAt(_menus.count - 1)
 
-            _stack.add([prev_menu, _state, _cursor_idx]) // Store state being left.
-            
-            _cursor_idx = 0
-            _state = next_state[1].new(this) // set and enter new state.        
+            // Confirm a previous menu exists.
+            if (_menus.count > 0) {
+                _menu = _menus[_menus.count - 1]
+                _menu.enter()
 
-        // Go back to previous state.
-        } else if (next_state[0] == prev_menu) {
-            if (next_state[1] == null) {
-                _state.exit(this)
-                _cursor_idx = 0
-
-                active = false
+            // Otherwise, exit menu system.
             } else {
-                _state.exit(this)
-                _state = next_state[1] // already instanced.
-                _cursor_idx = next_state[2]
-            }
+                _menu = null
+                _active = false
+            }        
+        } else if (menu_result[0] == exit_menu) {
+            _menu.exit()
+            _menus.clear()
+            _menu = null
+            _active = false
         }
+
+        return true
     }
 
-    /// Draws menu to screen.
+    /// Draws menu(s) to screen.
     render() {
-        _state.render(this)
+        for (m in _menus) m.render()
     }
 
     /// Get the direction of the player input
     getDirection() {
-        for(dir in 0...4) {
-            if(Input.getButtonOnce(_buttons[dir]) || Input.getKeyOnce(_keys[dir])) {
-                return dir
-            }
-        }
+        for(dir in 0...4) if(Input.getButtonOnce(_buttons[dir]) || Input.getKeyOnce(_keys[dir])) return dir
         return -1
     }
 
     /// Get the action of the player input.
     getAction() {
-        if (Input.getButtonOnce(Input.gamepadButtonSouth) || Input.getKeyOnce(Input.keyE)) {
-            return 1
-        }
-
-        if (Input.getButtonOnce(Input.gamepadButtonWest) || Input.getKeyOnce(Input.keyQ)) {
-            return -1
-        }
-
+        if (Input.getButtonOnce(Input.gamepadButtonSouth) || Input.getKeyOnce(Input.keyE)) return 1
+        if (Input.getButtonOnce(Input.gamepadButtonWest) || Input.getKeyOnce(Input.keyQ)) return -1
         return 0
     }
-
-    /// Accessors.
-    state {_state}
-    
-    active {_active}
-    active=(v) {_active = v}
-
-    stack {_stack}
-
-    font {_font}
-    padding {_padding}
-    
-    cursor_idx {_cursor_idx}
-    cursor_idx=(v) {_cursor_idx = v}
 }
 
-class MenuState {
-    construct new() {
-        _x = 0
-        _y = 0
-        _center = Vec2.new()
-        _idxs = []
+class BaseMenu {
+    static is_initialized { __is_initialized }
+
+    static initialize() {
+        __font = Render.loadFont("[game]/assets/FutilePro.ttf", 14)
+        __is_initialized = true
+    }
+
+    construct new(cursor_idx) {
+        // The items.
+        _items = []
+
+        // The index of the item the cursor is at.
+        _cursor_idx = cursor_idx
+
+        // Max items that can be viewed at once.
+        _view_size = 5
+
+        // What index to start showing items from. Render item list using this start index to
+        // make menus with item counts larger than the view size appear to scroll.
+        _start_idx = 0
+                
+        // Spacing parameters used for text layout.
+        _gap = 20
+        _padding = 3
+
+        // A menu may have child menus. These are things like an information window.
+        // Child menus do not take focus or get the cursor. They are only rendered when their parent menu renders.
+        _children = []
+
+        // Render stuff.
+        _visible = false // Can not be rendered if item list is empty.
+        _title_color = 0xFFFFFFFF
+        _enabled_color = 0xFFFFFFFF
+        _disabled_color = 0xA2A2A2FF
+        _text_colors = [] // Color of each item based on the idxs list.
+
+        // Customizable methods to set enabled items and text for items.
+        _fn_isEnabled = Fn.new{ |i, item| true }
+        _fn_getText = Fn.new{ |i, item| (i == _items.count - 1 ? item : "%(item)") }
     }
     
+    /// Happens when menu becomes active.
+    enter() {        
+        updateEnabledItems()
+        setVisible(true)
+    }
+
+    /// Player selection and cursor movement.
     handleInput(menu, action, dir) {}
-    exit(menu) {}
 
+    /// Show menu. Uses customizable functions to get the item text and color.
     render() {
-        var s_color = Data.getColor("Menu Shadow Color")
-        _sbg.render(x + center.x + 10, y - center.y - 10, s_color)
+        if (!_visible) return
 
-        var o_color = Data.getColor("Menu Outline Color")
-        _obg.render(x + center.x, y - center.y, o_color)
+        // Background boxes.
+        {
+            // Render dropshadow.
+            var s_color = Data.getColor("Menu Shadow Color")
+            _sbg.render(_center.x + 10, _center.y - 10, s_color)
 
-        var color = Data.getColor("Menu Color")
-        _bg.render(x + center.x, y - center.y, color)
+            // Render "border" next.
+            var o_color = Data.getColor("Menu Outline Color")
+            _obg.render(_center.x, _center.y, o_color)
+
+            // Render the background last.
+            var color = Data.getColor("Menu Color")
+            _bg.render(_center.x, _center.y, color)
+        }
+
+        // Content.
+        {
+            var text_line = 0
+            var text_start = _offset.y + (_size.y / 2) - (_gap / 2) - 4 - _padding
+
+            // Title
+            if (_title != null) {
+                Render.text(__font, _title, _offset.x - 20, text_start - text_line * _gap, 1.0, _title_color, 0x0, Render.spriteNone)
+                text_line = text_line + 1
+            }
+
+            // List.
+            var end_idx = Math.min(_items.count, _start_idx + _view_size)
+            for (i in _start_idx...end_idx) {
+                Render.text(__font, _fn_getText.call(i, _items[i]), _offset.x, text_start - text_line * _gap, 1.0, _text_colors[i], 0x0, Render.spriteNone)            
+                text_line = text_line + 1
+            }
+
+            // Cursor.
+            Render.text(__font, ">", _offset.x - 20, text_start - _gap - (_cursor_idx - _start_idx) * _gap, 1.0, _enabled_color, 0x0, Render.spriteNone)
+        }
+
+        // Child menus.
+        for (c in _children) c.render()
     }
 
-    createBG() {
-        _bg = Visor.new(_width, _height)
-        _obg = Visor.new(_width + 2, _height + 2)
-        _sbg = Visor.new(_width + 2, _height + 2)
+    /// What happens when the menu is removed. Removes child menus.
+    exit() {
+        _children.clear()
     }
+    
+    /// Sets what items are enabled/disabled using a customizable function.
+    /// Called during 'enter()', but can be called whenever the item states might change.
+    updateEnabledItems() {
+        _text_colors.clear()
 
-    calculateCenter() {
-        _center = -Vec2.new(x, y)        
-    }
-
-    getPreviousMenu(menu) {
-        System.print("Returning previous menu...")
-        
-        if (menu.stack.count > 0) {
-            return menu.stack.removeAt(menu.stack.count - 1) // Returns the previous menu.
-        } else {
-            return [menu.prev_menu, null, 0] // Exit menu system.
+        for (i in 0..._items.count) {
+            if (_fn_isEnabled.call(i, _items[i])) {        
+                _text_colors.add(_enabled_color)
+            } else {
+                _text_colors.add(_disabled_color)
+            }
         }
     }
 
-    getNextIdx(current_idx, max_idx, value) {
-        var new_idx = current_idx + value
-
-        System.print(" ")
-        System.print("Cur %(current_idx) -> %(new_idx) | Max %(max_idx) | Val %(value)")
-        System.print("Idxs: %(idxs)")
-
-        if (new_idx < 0) return 0
-        if (new_idx >= idxs.count) return idxs.count - 1
-
-        return new_idx
+    /// Called during derived class constructor, sets the menu boxes.    
+    setMenuData(size, center, offset) {
+        _size = size
+        _center = center
+        _offset = offset
+        
+        _bg = Visor.new(size.x, size.y)
+        _obg = Visor.new(size.x + 2, size.y + 2)
+        _sbg = Visor.new(size.x + 2, size.y + 2)
     }
 
-    // Determined by the menu state.
-    width {_width}
-    width=(v) {_width = v}
+    /// Sets menu visiblity. Use to hide old menus. Or continue showing them for a cascading effect (need to adjust box positions as well).
+    /// Can not be visible if there are no items to show.
+    setVisible(is_visible) {
+        if (is_visible && _items.count > 0) {
+            _visible = true
+        } else {
+            _visible = false
+        }
+    }
 
-    height {_height}
-    height=(v) {_height = v}
+    /// Moves cursor up/down. If list is scrolling, moves items up/down by 1 as long as cursor is at end of visible range.
+    moveCursor(dir) {
+        _cursor_idx = _cursor_idx - Directions[dir].y
+        
+        // Keep within bounds of enabled items.
+        if (_cursor_idx < 0) _cursor_idx = 0
+        if (_cursor_idx >= _items.count) _cursor_idx = _items.count - 1
+        
+        // Update starting index for rendering items.
+        if (_cursor_idx > _start_idx + _view_size - 1) _start_idx = _start_idx + 1
+        if (_cursor_idx < _start_idx) _start_idx = _start_idx - 1
+    }
     
+    /// Returns the smallest height to fit the items. If item count is greater than the view size, uses the view size.
+    getMinimumHeight() {
+        var count = (items.count > view_size ? view_size : items.count)
+        return gap * (count + 1) + padding * 2
+    }
+
+    // Box positioning.
+    size {_size}
     center {_center}
 
-    idxs {_idxs}
+    // Used to help place text.    
+    gap {_gap}
+    padding {_padding}
+    view_size {_view_size}
 
-    // Set after width and height are known.
-    bg {_bg} // rectangle shape
-    
-    x {_x}
-    x=(v) {_x = v}    
-    
-    y {_y}
-    y=(v) {_y = v}
+    // Tracks menu items and cursor.
+    items {_items}
+    items=(v) {_items = v}
+
+    cursor_idx {_cursor_idx}
+    cursor_idx=(v) {_cursor_idx = v}
+
+    // Custom functions for rendering.
+    fn_getText=(v) {_fn_getText = v}
+    fn_isEnabled=(v) {_fn_isEnabled = v}
+
+    // Render settings.
+    title=(v) {_title = v}
+
+    title_color {_title_color}
+    title_color=(v) {_title_color = v}
+
+    enabled_color {_enabled_color}
+    enabled_color=(v) {_enabled_color = v}
+
+    disabled_color {_disabled_color}
+    disabled_color=(v) {_disabled_color = v}
+
+    // Child menus.
+    children {_children}
 }
 
-class MainMenu is MenuState{
-/// The "enter" mode.
-    construct new(menu) {
-        super()
+/// Screen that appears alongside menu. Usually used to display additional information, but not actively navigated.
+/// Cannot scroll.
+class SubMenu {
+    static is_initialized { __is_initialized }
 
+    static initialize() {
+        __font = Render.loadFont("[game]/assets/FutilePro.ttf", 14)
+        __is_initialized = true
+    }
+
+    construct new() {
+        // The items.
         _items = []
-        _items.add("Inventory")
-        if (Gameplay.world_state == Gameplay.overworld_state) _items.add("Crafting")
-        // Return
-        
-        for (i in 0...(_items.count + 1)) idxs.add(i + 1)
-        
+
+        // Spacing parameters used for text layout.
         _gap = 20
+        _padding = 3
 
-        width = 120
-        height = (_items.count + 2) * _gap + menu.padding * 2
-        x = 30
+        // Render stuff.
+        _visible = false // Can not be rendered if item list is empty.
+        _title_color = 0xFFFFFFFF
+        _enabled_color = 0xFFFFFFFF
+        _disabled_color = 0xA2A2A2FF
+        _text_colors = [] // Color of each item based on the idxs list.
 
-        calculateCenter()
-        createBG()
+        // Current item index.
+        _i_start = 0
+        _i_end = 1
+
+        // Customizable methods to set enabled items and text for items.
+        _fn_isEnabled = Fn.new{ |i, item| true }
+        _fn_getText = Fn.new{ |i, item| (i == _items.count - 1 ? item : "%(item)") }
     }
 
-    handleInput(menu, action, dir) {
-        if (action == -1) {
-            return getPreviousMenu(menu)
-        }
+    construct new(items) {
+        // The items.
+        _items = items
 
-        if (action == 1) {
-            if (idxs[menu.cursor_idx] == 1) {
-                return [2, InventoryMenu, menu.cursor_idx]
-            }
-
-            if (idxs[menu.cursor_idx] == 2) {
-                //return [2, CraftingMenu, menu.cursor_idx]
-                Gameplay.message = "TODO"
-            }
-
-            if (idxs[menu.cursor_idx] == 3) {
-                return getPreviousMenu(menu)
-            }
-        }
-
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count, -(d.y))
-        }
-
-        return [menu.same_menu]
-    }
-
-    render(menu) {
-        super()
-        
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        Render.text(menu.font, "Menu-", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.        
-        count = count + 1
-        for (item in _items) {
-            Render.text(menu.font, item, xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-            count = count + 1
-        }
-        Render.text(menu.font, "Return", xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-        
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-    }
-
-    exit(menu) {}
-}
-
-class InventoryMenu is MenuState{
-/// The "enter" mode.
-    construct new(menu) {
-        super()
-
-        _show_length = 5
-        _start_idx = Math.max(0, menu.cursor_idx - _show_length - 1)
-        _items = []
-        for (entry in Hero.hero.inventory.contents) {
-            if (entry.value > 0 && !Bits.checkBitFlagOverlap(entry.key, SType.tools)) _items.add([Create.getItemName(entry.key), entry.value])
-        }
-        _items.add("Return")
-        
-        for (i in 0...(_items.count)) idxs.add(i + 1)
-        
+        // Spacing parameters used for text layout.
         _gap = 20
+        _padding = 3
 
-        width = 140
-        height = (_show_length + 1) * _gap + menu.padding * 2
-        x = 35
+        // Render stuff.
+        _visible = false // Can not be rendered if item list is empty.
+        _title_color = 0xFFFFFFFF
+        _enabled_color = 0xFFFFFFFF
+        _disabled_color = 0xA2A2A2FF
+        _text_colors = [] // Color of each item based on the idxs list.
 
-        calculateCenter()
-        createBG()
+        // Current item index.
+        _i_start = 0
+        _i_end = 1
+
+        // Customizable methods to set enabled items and text for items.
+        _fn_isEnabled = Fn.new{ |i, item| true }
+        _fn_getText = Fn.new{ |i, item| (i == _items.count - 1 ? item : "%(item)") }
     }
 
-    handleInput(menu, action, dir) {
-        if (action == -1) {
-            return getPreviousMenu(menu)
+    /// Show child menu.
+    render() {        
+        if (!_visible) return
+
+        // Background boxes.
+        {
+            // Render dropshadow.
+            var s_color = Data.getColor("Menu Shadow Color")
+            _sbg.render(_center.x + 10, _center.y - 10, s_color)
+
+            // Render "border" next.
+            var o_color = Data.getColor("Menu Outline Color")
+            _obg.render(_center.x, _center.y, o_color)
+
+            // Render the background last.
+            var color = Data.getColor("Menu Color")
+            _bg.render(_center.x, _center.y, color)
         }
 
-        if (action == 1) {
-            if (idxs[menu.cursor_idx] == _items.count) {
-                return getPreviousMenu(menu)
-            }
-        }
+        // Content.
+        {
+            var text_line = 0
+            var text_start = _offset.y + (_size.y / 2) - (_gap / 2) - 4 - _padding
 
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count, -(d.y))
-            if (menu.cursor_idx > _start_idx + _show_length - 1) _start_idx = _start_idx + 1
-            if (menu.cursor_idx < _start_idx) _start_idx = _start_idx - 1
-        }
-
-        return [menu.same_menu]
-    }
-
-    render(menu) {
-        super()
-        
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        Render.text(menu.font, "Inventory-", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.        
-        count = count + 1
-        var max = Math.min(_items.count, _start_idx + _show_length)
-        for (i in _start_idx...(max)) {            
-            if (i == _items.count - 1) {
-                Render.text(menu.font, "Return", xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-            } else {
-                var text = "x%(_items[i][1]) %(_items[i][0])"
-                Render.text(menu.font, text, xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-            }
-            
-            count = count + 1
-        }
-        
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx - _start_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-    }
-
-    exit(menu) {}
-}
-
-class CraftingMenu is MenuState{
-}
-
-class InnMenu is MenuState{
-/// The "enter" mode.
-    construct new(menu) {
-        super()
-        _costs = [5 * Hero.hero.level, 30]
-
-        _items = []
-        _items.add("Room: %(_costs[0]) gp")
-        _items.add("Bus: %(_costs[1]) gp")
-        // Return
-        
-        for (i in 0...(_items.count + 1)) idxs.add(i + 1)
-        
-        _gap = 20
-
-        width = 130
-        height = (_items.count + 2) * _gap + menu.padding * 2
-        x = 30
-
-        calculateCenter()
-        createBG()
-    }
-
-    handleInput(menu, action, dir) {
-        if (action == -1) {
-            return getPreviousMenu(menu)
-        }
-
-        if (action == 1) {
-            if (idxs[menu.cursor_idx] == 1) {
-                Hero.hero.inventory.add(SType.i_coin, -(_costs[0]))
-                Hero.hero.stats.health = Hero.hero.max_hp
-                Gameplay.message = "Recovered full health"
+            // Title
+            if (_title != null) {
+                Render.text(__font, _title, _offset.x - 20, text_start - text_line * _gap, 1.0, _title_color, 0x0, Render.spriteNone)
+                text_line = text_line + 1
             }
 
-            if (idxs[menu.cursor_idx] == 2) {
-                Hero.hero.inventory.add(SType.i_coin, -(_costs[1]))                
-                Gameplay.travel()
+            // Item/Info.
+            for (i in _i_start..._i_end) {
+                var lines = _fn_getText.call(i, _items[i]).split("\n")
+                var color = _text_colors[i]
+                for (line in lines) {
+                    Render.text(__font, line, _offset.x, text_start - text_line * _gap, 1.0, color, 0x0, Render.spriteNone)            
+                    text_line = text_line + 1
+                }
             }
-
-            return getPreviousMenu(menu)
-        }
-
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count + 1, -(d.y))
-        }
-
-        return [menu.same_menu]
+        }   
     }
 
-    render(menu) {
-        super()
-
-        idxs.clear()
-
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        var gold = Hero.hero.inventory.get(SType.i_coin)
-        Render.text(menu.font, "Inn- %(gold) gp", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.        
-        count = count + 1
-        for (i in 0..._items.count) {
-            var color = (gold >= _costs[i] ? 0xFFFFFFFF : 0xA2A2A2FF)
-            if (gold >= _costs[i]) idxs.add(count)
-
-            Render.text(menu.font, _items[i], xi, yi - count * _gap, 1.0, color, 0x0, Render.spriteNone)
-            count = count + 1
-        }
-        idxs.add(count)
-        Render.text(menu.font, "Return", xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
+    /// Called during derived class constructor, sets the menu boxes.
+    /// If called before the item list is filled, 'setVisible()' will need to be manually called again.
+    setMenuData(size, center, offset) {
+        _size = size
+        _center = center
+        _offset = offset
         
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
+        _bg = Visor.new(size.x, size.y)
+        _obg = Visor.new(size.x + 2, size.y + 2)
+        _sbg = Visor.new(size.x + 2, size.y + 2)
+
+        setVisible(true)
     }
 
-    exit(menu) {}
-}
-
-class ShopMenu is MenuState{
-/// The "enter" mode.
-    construct new(menu) {
-        super()
-
-        var durabilities = [Hero.hero.inventory.get(SType.i_axe), Hero.hero.inventory.get(SType.i_pick), Hero.hero.inventory.get(SType.i_shovel)]
-
-        _costs = [5, 10, 5]
-        for (i in 0...durabilities.count) {
-            _costs[i] = (10 - durabilities[i]) * _costs[i]
-        }
-
-        _items = []
-        _items.add("Axe: %(_costs[0]) gp")
-        _items.add("Pick: %(_costs[1]) gp")
-        _items.add("Shovel: %(_costs[2]) gp")
-        // Return
-        
-        for (i in 0...(_items.count + 1)) idxs.add(i + 1)
-        
-        _gap = 20
-
-        width = 140
-        height = (_items.count + 2) * _gap + menu.padding * 2
-        x = 40
-
-        calculateCenter()
-        createBG()
-    }
-
-    handleInput(menu, action, dir) {
-        if (action == -1) {
-            return getPreviousMenu(menu)
-        }
-
-        if (action == 1) {
-            if (idxs[menu.cursor_idx] == 1) {
-                Hero.hero.inventory.add(SType.i_coin, -(_costs[0]))                
-                Hero.hero.inventory.set(SType.i_axe, 10)
-                Gameplay.message = "Restored axe to full durability"
-                return getPreviousMenu(menu)
-            }
-
-            if (idxs[menu.cursor_idx] == 2) {
-                Hero.hero.inventory.add(SType.i_coin, -(_costs[1]))
-                Hero.hero.inventory.set(SType.i_pick, 10)
-                Gameplay.message = "Restored pick to full durability"
-                return getPreviousMenu(menu)
-            }
-
-            if (idxs[menu.cursor_idx] == 3) {
-                Hero.hero.inventory.add(SType.i_coin, -(_costs[2]))
-                Hero.hero.inventory.set(SType.i_shovel, 10)
-                Gameplay.message = "Restored shovel to full durability"
-                return getPreviousMenu(menu)
-            }
-            return getPreviousMenu(menu)
-        }
-
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count + 1, -(d.y))
-        }
-
-        return [menu.same_menu]
-    }
-
-    render(menu) {
-        super()
-
-        idxs.clear()
-
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        var gold = Hero.hero.inventory.get(SType.i_coin)
-        Render.text(menu.font, "Shop- %(gold) gp", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.        
-        count = count + 1
-        for (i in 0..._items.count) {
-            var color = (gold >= _costs[i] ? 0xFFFFFFFF : 0xA2A2A2FF)
-            if (gold >= _costs[i]) idxs.add(count)
-
-            Render.text(menu.font, _items[i], xi, yi - count * _gap, 1.0, color, 0x0, Render.spriteNone)
-            count = count + 1
-        }
-        idxs.add(count)
-        Render.text(menu.font, "Return", xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-        
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-    }
-
-    exit(menu) {}
-}
-
-class LevelUpMenu is MenuState{
-/// The "enter" mode.
-    construct new(menu) {
-        super()
-        _amounts = [Tools.random.int(1, 3), Tools.random.int(1, 3), Tools.random.int(1, 3)]
-
-        _items = []
-        _items.add("+%(_amounts[0]) Max HP")
-        _items.add("+%(_amounts[1]) Damage")
-        _items.add("+%(_amounts[2]) Armor")
-        
-        for (i in 0...(_items.count)) idxs.add(i + 1)
-        
-        _gap = 20
-
-        width = 120
-        height = (_items.count + 1) * _gap + menu.padding * 2
-        x = 30
-
-        calculateCenter()
-        createBG()
-    }
-
-    handleInput(menu, action, dir) {
-        if (action == 1) {
-            if (idxs[menu.cursor_idx] == 1) {
-                Hero.hero.stats.health = Hero.hero.stats.health + _amounts[0]
-                Hero.hero.max_hp = Hero.hero.max_hp + _amounts[0]
-                return getPreviousMenu(menu)
-            }
-
-            if (idxs[menu.cursor_idx] == 2) {
-                Hero.hero.stats.damage = Hero.hero.stats.damage + _amounts[1]
-                return getPreviousMenu(menu)
-            }
-
-            if (idxs[menu.cursor_idx] == 3) {
-                Hero.hero.stats.armor = Hero.hero.stats.armor + _amounts[2]
-                return getPreviousMenu(menu)
-            }
-        }
-
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count, -(d.y))
-        }
-
-        return [menu.same_menu]
-    }
-
-    render(menu) {
-        super()
-        
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        Render.text(menu.font, "Level %(Hero.hero.level)-", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.        
-        count = count + 1
-        for (item in _items) {
-            Render.text(menu.font, item, xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-            count = count + 1
-        }
-        
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-    }
-
-    exit(menu) {}
-}
-
-class ToolMenu is MenuState {
-    /// The "enter" mode.
-    construct new(menu) {
-        super()
-        
-        _items = []
-        _items.add(["Rod", SType.i_rod])
-        _items.add(["Axe", SType.i_axe])
-        _items.add(["Pick", SType.i_pick])
-        _items.add(["Shovel", SType.i_shovel])
-        // Return is final item.
-        
-        for (i in 0...(_items.count + 1)) idxs.add(i + 1)
-        
-        _gap = 20
-
-        width = 90
-        height = (_items.count + 2) * _gap + menu.padding * 2
-        x = 16
-
-        calculateCenter()
-        createBG()
-    }
-
-    handleInput(menu, action, dir) {
-        // Action takes priority.
-        if (action == -1) {
-            return getPreviousMenu(menu)
-        }
-
-        if (action == 1) {
-            if (idxs[menu.cursor_idx] == 1) Hero.hero.useRod()
-            if (idxs[menu.cursor_idx] == 2) Hero.hero.useAxe()
-            if (idxs[menu.cursor_idx] == 3) Hero.hero.usePick()
-            if (idxs[menu.cursor_idx] == 4) Hero.hero.useShovel()            
-            return getPreviousMenu(menu)
-        }
-
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count, -(d.y))
-        }
-
-        return [menu.same_menu]
-    }
-
-    render(menu) {
-        super()
-
-        idxs.clear()
-        
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        Render.text(menu.font, "Tools-", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.
-        count = count + 1
-        for (pair in _items) {
-            var name = pair[0]
-            var key = pair[1]
-            
-            var color = 0xA2A2A2FF            
-            if (Hero.hero.inventory.get(key) > 0 || key == SType.i_rod) {
-                color = 0xFFFFFFFF
-                idxs.add(count)
-            }
-
-            Render.text(menu.font, name, xi, yi - count * _gap, 1.0, color, 0x0, Render.spriteNone)
-            count = count + 1
-        }
-        idxs.add(count)
-        Render.text(menu.font, "Return", xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-    }
-
-    exit(menu) {}
-}
-
-
-class DungeonMenu is MenuState {
-    /// The "enter" mode.
-    construct new(menu) {
-        super()
-        
-        _items = []
-        if (Hero.hero.inventory.get(SType.i_map) > 0) {
-            _items.add("Don't Use Yet")
+    /// Sets menu visiblity. Use to hide old menus. Or continue showing them for a cascading effect (need to adjust box positions as well).
+    /// Can not be visible if there are no items to show.
+    setVisible(is_visible) {
+        if (is_visible && _items.count > 0) {
+            _visible = true
         } else {
-            _items.add("Don't Have Yet")
+            _visible = false
         }
-        _items.add("Use To Escape")
-        
-        for (i in 0..._items.count) idxs.add(i + 1) // Account for the position of the title
-        
-        _gap = 20
-
-        width = 180
-        height = (_items.count + 1) * _gap + menu.padding * 2
-        x = 60
-
-        calculateCenter()
-        createBG()
-    }
-
-    handleInput(menu, action, dir) {
-        // Action takes priority.
-        if (action == -1) {
-            return getPreviousMenu(menu)
-        }
-
-        if (action == 1) {
-            if (idxs[menu.cursor_idx] == 2) Gameplay.exitDungeon()
-            return getPreviousMenu(menu)
-        }
-
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count, -(d.y))
-        }
-
-        return [menu.same_menu]
-    }
-
-    render(menu) {
-        super()
-
-        idxs.clear()
-
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        Render.text(menu.font, "Map-", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.
-        count = count + 1
-        var color = 0xFFFFFFFF
-        Render.text(menu.font, _items[0], xi, yi - count * _gap, 1.0, color, 0x0, Render.spriteNone)
-        idxs.add(count)
-        
-        count = count + 1
-        var has_map = (Hero.hero.inventory.get(SType.i_map) > 0)
-        color = (has_map ? 0xFFFFFFFF : 0xA2A2A2FF)
-        if (has_map) idxs.add(count)
-        Render.text(menu.font, _items[1], xi, yi - count * _gap, 1.0, color, 0x0, Render.spriteNone)
-
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
     }
     
-    exit(menu) {}
+    /// Sets what items are enabled/disabled using a customizable function.
+    /// Can be called whenever the item states might change.
+    updateEnabledItems() {
+        _text_colors.clear()
+
+        for (i in 0..._items.count) {        
+            if (_fn_isEnabled.call(i, _items[i])) {                
+                _text_colors.add(_enabled_color)
+            } else {
+                _text_colors.add(_disabled_color)
+            }
+        }
+    }
+
+    // Helps align submenu relative to parent.
+    alignTop(size, p_center, p_size) { p_center.y + p_size.y / 2 - size.y / 2 }
+    alignRight(size, p_center, p_size) { p_center.x + p_size.x / 2 - size.x / 2 }
+    alignBottom(size, p_center, p_size) { p_center.y - p_size.y / 2 + size.y / 2 }
+    alignLeft(size, p_center, p_size) { p_center.x - p_size.x / 2 + size.x / 2 }
+
+    alignAbove(size, p_center, p_size) { p_center.y + p_size.y / 2 + size.y / 2 }
+    alignAfter(size, p_center, p_size) { p_center.x + p_size.x / 2 + size.x / 2 }
+    alignBelow(size, p_center, p_size) { p_center.y - p_size.y / 2 - size.y / 2 }
+    alignBefore(size, p_center, p_size) { p_center.x - p_size.x / 2 - size.x / 2 }
+
+    // Used to help place text.    
+    gap {_gap}
+    padding {_padding}
+
+    // Tracks menu items.
+    items {_items}    
+    items=(v) {_items = v}
+
+    i_start {_i_start}
+    i_start=(v) {_i_start = v}
+
+    i_end {_i_end}
+    i_end=(v) {_i_end = v}
+
+    // Render settings.
+    fn_isEnabled=(v) {_fn_isEnabled = v}
+    fn_getText=(v) {_fn_getText = v}
+
+    title=(v) {_title = v}
+
+    title_color {_title_color}
+    title_color=(v) {_title_color = v}
+
+    item_color {_item_color}
+    item_color=(v) {_item_color = v}
+
+    text_colors=(v) {_text_colors = v}
 }
 
-class GameOverMenu is MenuState {
-    /// The "enter" mode.
-    construct new(menu) {
-        super()
-        
-        _items = []
-        _items.add("Try Again")
-        _items.add("Get Better")
-        _items.add("Seek Revenge") 
-        
-        for (i in 0..._items.count) idxs.add(i + 1) // Account for the position of the title
-        
-        _gap = 20
-
-        width = 150
-        height = (_items.count + 1) * _gap + menu.padding * 2
-        x = 40
-
-        calculateCenter()
-        createBG()
-    }
-
-    handleInput(menu, action, dir) {
-        // Only 1 way forward.
-        if (action == 1) {
-            Gameplay.startOver()
-            return getPreviousMenu(menu)
-        }
-
-        if (dir >= 0) {
-            var d = Directions[dir]
-            menu.cursor_idx = getNextIdx(menu.cursor_idx, _items.count - 1, -(d.y))
-        }
-
-        return [menu.same_menu]
-    }
-
-    render(menu) {
-        super()
-
-        var xi = center.x
-        var yi = center.y + (height / 2) - (_gap / 2) - 4 - menu.padding
-
-        // Title
-        var count = 0
-        Render.text(menu.font, "Game Over", xi - 20, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-
-        // List.
-        count = count + 1
-        for (name in _items) {
-            Render.text(menu.font, name, xi, yi - count * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-            count = count + 1
-        }
-
-        // Cursor.
-        Render.text(menu.font, ">", xi - 20, yi - idxs[menu.cursor_idx] * _gap, 1.0, 0xFFFFFFFF, 0x0, Render.spriteNone)
-    }
-        
-    exit(menu) {}
-}
-
-import "gameplay" for Gameplay
-import "hero" for Inventory
-import "types" for SType
+//import "hero" for Inventory
+//import "types" for SType
 import "visor" for Visor
-import "create" for Create
-import "components" for Hero
+//import "create" for Create
+//import "parts" for PartMaker
+//import "components" for Hero
 import "directions" for Directions
+import "menus" for MainMenu, InventoryMenu, CraftingMenu
+import "menus" for ToolMenu, ShopMenu, InnMenu
+import "menus" for DungeonMenu, LevelUpMenu, GameOverMenu
+import "menus" for PoleCraftingMenu
