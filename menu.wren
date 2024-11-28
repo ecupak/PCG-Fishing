@@ -1,5 +1,13 @@
+System.print("12 + Menu")
+
+
 import "xs" for Data, Render, Input
 import "xs_math" for Math, Vec2
+
+// No extra imports.
+import "directions" for Directions
+import "visor" for Visor
+
 
 class Menu {
     /// Open starting menus.
@@ -78,13 +86,23 @@ class Menu {
         // Get player input and menu results.
         var action = getAction()
         var dir = getDirection()
-        var menu_result = _menu.handleInput(this, action, dir) // Returns [next, next menu, current menu cursor index] | [previous] | [same] | [exit]
+
+        // Returns [next, next menu, current menu cursor index] | [previous, number of menus to remove] | [same] | [exit]
+        // Or also [next, next menu, current menu curosr index, forwarded arguments] if needing to pass info to next menu (usually confirmation menu)
+        var menu_result = _menu.handleInput(this, action, dir) 
         
         // Process results...
         // - Go to next menu.
         if (menu_result[0] == next_menu) {
             _menu.exit()
-            _menus.add(menu_result[1].new(0)) // Set new state.
+            
+            // Check for forwarded arguments.
+            if (menu_result.count == 4) {
+                _menus.add(menu_result[1].new(0, menu_result[3]))
+            } else {
+                _menus.add(menu_result[1].new(0))
+            }
+            
             _menu = _menus[_menus.count - 1]
             _menu.enter()
 
@@ -115,7 +133,13 @@ class Menu {
 
     /// Draws menu(s) to screen.
     render() {
-        for (m in _menus) m.render()
+        var counter = 0
+        var start_depth = 10
+        
+        for (menu in _menus) {
+            counter = counter + 1
+            menu.render(counter * start_depth)
+        }
     }
 
     /// Get the direction of the player input
@@ -184,54 +208,53 @@ class BaseMenu {
     handleInput(menu, action, dir) {}
 
     /// Show menu. Uses customizable functions to get the item text and color.
-    render() {
+    render(start_depth) {
         if (!_visible) return
 
         // Background boxes.
         {
             // Render dropshadow.
             var s_color = Data.getColor("Menu Shadow Color")
-            _sbg.render(_center.x + 10, _center.y - 10, s_color)
+            _sbg.render(_center.x + 10, _center.y - 10, start_depth, s_color)
 
             // Render "border" next.
             var o_color = Data.getColor("Menu Outline Color")
-            _obg.render(_center.x, _center.y, o_color)
+            _obg.render(_center.x, _center.y, start_depth + 1, o_color)
 
             // Render the background last.
             var color = Data.getColor("Menu Color")
-            _bg.render(_center.x, _center.y, color)
+            _bg.render(_center.x, _center.y, start_depth + 2, color)
         }
 
         // Content.
         {
+            var text_depth = start_depth + 3
             var text_line = 0
             var text_start = _offset.y + (_size.y / 2) - (_gap / 2) - 4 - _padding
 
             // Title
             if (_title != null) {
-                Render.text(__font, _title, _offset.x - 20, text_start - text_line * _gap, 1.0, _title_color, 0x0, Render.spriteNone)
+                Render.text(__font, _title, _offset.x - 20, text_start - text_line * _gap, text_depth, _title_color, 0x0, Render.spriteNone)
                 text_line = text_line + 1
             }
 
             // List.
             var end_idx = Math.min(_items.count, _start_idx + _view_size)
             for (i in _start_idx...end_idx) {
-                Render.text(__font, _fn_getText.call(i, _items[i]), _offset.x, text_start - text_line * _gap, 1.0, _text_colors[i], 0x0, Render.spriteNone)            
+                Render.text(__font, _fn_getText.call(i, _items[i]), _offset.x, text_start - text_line * _gap, text_depth, _text_colors[i], 0x0, Render.spriteNone)            
                 text_line = text_line + 1
             }
 
             // Cursor.
-            Render.text(__font, ">", _offset.x - 20, text_start - _gap - (_cursor_idx - _start_idx) * _gap, 1.0, _enabled_color, 0x0, Render.spriteNone)
+            Render.text(__font, ">", _offset.x - 20, text_start - _gap - (_cursor_idx - _start_idx) * _gap, text_depth, _enabled_color, 0x0, Render.spriteNone)
         }
 
         // Child menus.
-        for (c in _children) c.render()
+        for (c in _children) c.render(start_depth)
     }
 
-    /// What happens when the menu is removed. Removes child menus.
-    exit() {
-        _children.clear()
-    }
+    /// What happens when the menu is removed.
+    exit() {}
     
     /// Sets what items are enabled/disabled using a customizable function.
     /// Called during 'enter()', but can be called whenever the item states might change.
@@ -349,8 +372,8 @@ class SubMenu {
         _text_colors = [] // Color of each item based on the idxs list.
 
         // Current item index.
-        _i_start = 0
-        _i_end = 1
+        _start = 0
+        _end = 1
 
         // Customizable methods to set enabled items and text for items.
         _fn_isEnabled = Fn.new{ |i, item| true }
@@ -373,8 +396,8 @@ class SubMenu {
         _text_colors = [] // Color of each item based on the idxs list.
 
         // Current item index.
-        _i_start = 0
-        _i_end = 1
+        _start = 0
+        _end = 1
 
         // Customizable methods to set enabled items and text for items.
         _fn_isEnabled = Fn.new{ |i, item| true }
@@ -382,41 +405,42 @@ class SubMenu {
     }
 
     /// Show child menu.
-    render() {        
+    render(start_depth) {        
         if (!_visible) return
 
         // Background boxes.
         {
             // Render dropshadow.
             var s_color = Data.getColor("Menu Shadow Color")
-            _sbg.render(_center.x + 10, _center.y - 10, s_color)
+            _sbg.render(_center.x + 10, _center.y - 10, start_depth, s_color)
 
             // Render "border" next.
             var o_color = Data.getColor("Menu Outline Color")
-            _obg.render(_center.x, _center.y, o_color)
+            _obg.render(_center.x, _center.y, start_depth + 1, o_color)
 
             // Render the background last.
             var color = Data.getColor("Menu Color")
-            _bg.render(_center.x, _center.y, color)
+            _bg.render(_center.x, _center.y, start_depth + 2, color)
         }
 
         // Content.
         {
+            var text_depth = start_depth + 3
             var text_line = 0
             var text_start = _offset.y + (_size.y / 2) - (_gap / 2) - 4 - _padding
 
             // Title
             if (_title != null) {
-                Render.text(__font, _title, _offset.x - 20, text_start - text_line * _gap, 1.0, _title_color, 0x0, Render.spriteNone)
+                Render.text(__font, _title, _offset.x - 20, text_start - text_line * _gap, text_depth, _title_color, 0x0, Render.spriteNone)
                 text_line = text_line + 1
             }
 
             // Item/Info.
-            for (i in _i_start..._i_end) {
+            for (i in _start..._end) {
                 var lines = _fn_getText.call(i, _items[i]).split("\n")
                 var color = _text_colors[i]
                 for (line in lines) {
-                    Render.text(__font, line, _offset.x, text_start - text_line * _gap, 1.0, color, 0x0, Render.spriteNone)            
+                    Render.text(__font, line, _offset.x, text_start - text_line * _gap, text_depth, color, 0x0, Render.spriteNone)            
                     text_line = text_line + 1
                 }
             }
@@ -480,11 +504,11 @@ class SubMenu {
     items {_items}    
     items=(v) {_items = v}
 
-    i_start {_i_start}
-    i_start=(v) {_i_start = v}
+    start {_start}
+    start=(v) {_start = v}
 
-    i_end {_i_end}
-    i_end=(v) {_i_end = v}
+    end {_end}
+    end=(v) {_end = v}
 
     // Render settings.
     fn_isEnabled=(v) {_fn_isEnabled = v}
@@ -501,14 +525,11 @@ class SubMenu {
     text_colors=(v) {_text_colors = v}
 }
 
-//import "hero" for Inventory
-//import "types" for SType
-import "visor" for Visor
-//import "create" for Create
-//import "parts" for PartMaker
-//import "components" for Hero
-import "directions" for Directions
+
 import "menus" for MainMenu, InventoryMenu, CraftingMenu
 import "menus" for ToolMenu, ShopMenu, InnMenu
 import "menus" for DungeonMenu, LevelUpMenu, GameOverMenu
 import "menus" for PoleCraftingMenu
+
+
+System.print("12 - Menu")

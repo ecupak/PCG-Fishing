@@ -1,5 +1,14 @@
+System.print("14 + Sub Menus")
+
+
 import "xs_math" for Vec2
+
+// No extra imports.
+import "types" for SType, GType
+
+// For inheritance.
 import "menu" for SubMenu
+
 
 /// Displays information about the highlighted item.
 class InventoryInfoMenu is SubMenu {
@@ -11,21 +20,21 @@ class InventoryInfoMenu is SubMenu {
         _info = {
             0: "???",
 
-            SType.i_key: "Opens locked doors.",
-            SType.i_coin: "Spend at shops.",            
+            SType.key: "Opens locked doors.",
+            SType.coin: "Spend at shops.",            
 
-            SType.i_wood: "Crafting item.",
-            SType.i_bone: "Crafting item.",
+            SType.wood: "Crafting item.",
+            SType.bone: "Crafting item.",
 
-            SType.i_rose: "Crafting item.",
-            SType.i_marigold: "Crafting item.",
-            SType.i_iris: "Crafting item.",
+            SType.rose: "Crafting item.",
+            SType.marigold: "Crafting item.",
+            SType.iris: "Crafting item.",
 
-            SType.i_ruby: "Crafting item.",
-            SType.i_amethyst: "Crafting item.",
-            SType.i_peridot: "Crafting item.",
+            SType.ruby: "Crafting item.",
+            SType.amethyst: "Crafting item.",
+            SType.peridot: "Crafting item.",
 
-            SType.i_map: "Used to escape \ndungeons.",
+            SType.map: "Used to escape \ndungeons.",
         }
 
         _item_key = [0]
@@ -77,30 +86,67 @@ class ToolInfoMenu is SubMenu {
     }
 }
 
+/// Displays pole information for the highlighted pole.
+class PoleInfoMenu is SubMenu {
+    construct new(p_center, p_size) {
+        super()
+
+        // Fill items.
+        items = ["Desc", "P1", "P2", "P3"]
+        start = 0
+        end = 4
+        
+        // If the material required is not in inventory, show it in disabled color.
+        fn_isEnabled = Fn.new { |i, item| (item != "empty") }
+
+        // Show items with a leading 'true' as-is. Only need to format the material costs.
+        //fn_getText = Fn.new { |i, item| }
+
+        // Size and position of box containing items.        
+        var size = Vec2.new(165, gap * 6 + padding * 2)
+        var center = Vec2.new(alignAfter(size, p_center, p_size) + 12, alignTop(size, p_center, p_size))
+        var offset = center + Vec2.new(5 + -size.x / 2, 0)
+
+        setMenuData(size, center, offset)
+    }
+
+    update(gear_entity) {
+        // Add description.
+        var gear = gear_entity.get(Gear)
+        var description = Craft.getFullGearDescription(gear)
+        var perk_text = (gear.perk_slots > 0 ? "Perks:" : "No perk slots.")
+
+        items.clear()
+        items.add(description + perk_text)
+
+        for (i in 0...gear.perk_slots) {
+            System.print("i from 0 to %(end)")
+            if (gear.accessory_perks.count >= i + 1) {
+                var perk_description = Craft.getFullPerkDescription(gear.accessory_perks[i])
+                items.add(perk_description)
+            } else {
+                items.add("empty")
+            }
+        }
+        end = gear.perk_slots + 1
+        System.print("end = %(end)")
+
+        updateEnabledItems()
+    }
+}
+
 /// Displays pole crafting information for the highlighted pole.
 class PoleCraftingInfoMenu is SubMenu {
     construct new(p_center, p_size) {
         super()
 
-        _description = {
-            SType.i_wood: "Basic fishing pole.\n \n",
-            SType.i_bone: "1\% of remaining Air \nis added to Armor. \n",
-
-            SType.i_rose: "Max Health +10\%\n \n",
-            SType.i_marigold: "5\% of gold is added \nto Damage.\n",
-            SType.i_iris: "No turn cost to pick \nup or use keys.\n",
-
-            SType.i_ruby: "Regain 5\% of Health \non enemy defeat.\n",
-            SType.i_amethyst: "Reduce detection \nrange by 2.\n",
-            SType.i_peridot: "10\% chance on hit \nto push enemy.\n",
-        }
-
         // Fill items.
-        for (material in PartMaker.getMaterials()) {
+        for (material in Craft.getMaterials()) {
             // Add description.
-            items.add([true, _description[material] + "Requires:"])
+            var description = Craft.getFullGearDescription(GType.pole, material)    
+            items.add([true, description + "Requires:"])
             // Add material costs.
-            var costs = PartMaker.getCraftingCost(SType.i_pole, material)
+            var costs = Craft.getGearCost(GType.pole, material)
             for (i in 0...3) {
                 if (i < costs.count) {
                     items.add([false, costs[i]])
@@ -127,7 +173,7 @@ class PoleCraftingInfoMenu is SubMenu {
             } else {
                 var cost = item[1]
                 var material = Create.getItemName(cost[0])
-                return "- x%(cost[1]) %(material)"
+                return "x%(cost[1]) %(material)"
             }
         }        
 
@@ -140,15 +186,20 @@ class PoleCraftingInfoMenu is SubMenu {
     }
 
     update(item_key) {
-        var index = PartMaker.getMaterials().indexOf(item_key)
-        i_start = index * 4
-        i_end = i_start + 4
+        var index = Craft.getMaterials().indexOf(item_key)
+        start = index * 4
+        end = start + 4
         
         updateEnabledItems()
     }
 }
 
-import "types" for SType
-import "parts" for PartMaker
+
+// Already in module registry.
+import "components" for Gear
+import "hero" for Hero
 import "create" for Create
-import "components" for Hero
+import "craft" for Craft
+
+
+System.print("14 - Sub Menus")

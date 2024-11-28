@@ -1,3 +1,6 @@
+System.print("07 + Directions")
+
+
 import "xs_math" for Vec2
 
 class Directions {
@@ -46,3 +49,6 @@ class Directions {
         }
     } 
 }
+
+
+System.print("07 - Directions")

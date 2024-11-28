@@ -1,7 +1,15 @@
+System.print("16 + Pond")
+
+
 import "xs" for Data
 import "xs_containers" for Grid 
 import "xs_math" for Math, Vec2, Bits
 import "xs_tools" for Tools
+
+// No extra imports.
+import "types" for OType, Group
+import "directions" for Directions
+
 
 class Pond {
     static canExpand(expansion_chance) { Tools.random.int(0, 100) <= expansion_chance }
@@ -31,7 +39,7 @@ class Pond {
         // Initial pond setup.
         for (dir in surroundings) {
             var cell = origin + dir
-            pond_map[cell.x, cell.y] = LevelTile.new(OType.pond, Layer.overworld)
+            pond_map[cell.x, cell.y] = LevelTile.new(OType.pond, Group.overworld)
             frontier.add(cell)
             all_pond_tiles.add(cell)
         }        
@@ -51,7 +59,7 @@ class Pond {
                             
                             if (Tools.random.int(0, 100) <= expansion_chance && expansion_tiles > 0) {
                                 new_frontier.add(other_cell)
-                                pond_map[other_cell.x, other_cell.y] = LevelTile.new(OType.pond, Layer.overworld)
+                                pond_map[other_cell.x, other_cell.y] = LevelTile.new(OType.pond, Group.overworld)
                                 
                                 expansion_chance = expansion_chance - chance_dropoff
                                 expansion_tiles = expansion_tiles - 1
@@ -78,7 +86,7 @@ class Pond {
                 if (pond_map.valid(other_cell.x, other_cell.y)) {
                     if (pond_map[other_cell.x, other_cell.y].type == 0) {
                         new_frontier.add(other_cell)
-                        pond_map[other_cell.x, other_cell.y] = LevelTile.new(OType.pond, Layer.overworld)
+                        pond_map[other_cell.x, other_cell.y] = LevelTile.new(OType.pond, Group.overworld)
                     }
                 }
             }
@@ -105,17 +113,17 @@ class Pond {
             }
             
             // Replace tile info based on neighbors.
-            var tile = LevelTile.new(OType.pond, Layer.overworld)
+            var tile = LevelTile.new(OType.pond, Group.overworld)
             
-            if (neighbors == (right | down))        { tile = LevelTile.new(OType.pond_corner, Layer.overworld, Math.radians(0.0))     }
-            if (neighbors == (up | right))          { tile = LevelTile.new(OType.pond_corner, Layer.overworld, Math.radians(90.0))    }
-            if (neighbors == (up | left))           { tile = LevelTile.new(OType.pond_corner, Layer.overworld, Math.radians(180.0))   }
-            if (neighbors == (left | down))         { tile = LevelTile.new(OType.pond_corner, Layer.overworld, Math.radians(270.0))   }
+            if (neighbors == (right | down))        { tile = LevelTile.new(OType.pond_corner, Group.overworld, Math.radians(0.0))     }
+            if (neighbors == (up | right))          { tile = LevelTile.new(OType.pond_corner, Group.overworld, Math.radians(90.0))    }
+            if (neighbors == (up | left))           { tile = LevelTile.new(OType.pond_corner, Group.overworld, Math.radians(180.0))   }
+            if (neighbors == (left | down))         { tile = LevelTile.new(OType.pond_corner, Group.overworld, Math.radians(270.0))   }
 
-            if (neighbors == (up | right | down))   { tile = LevelTile.new(OType.pond_side, Layer.overworld, Math.radians(0.0))       }
-            if (neighbors == (left | up | right))   { tile = LevelTile.new(OType.pond_side, Layer.overworld, Math.radians(90.0))      }
-            if (neighbors == (down | left | up))    { tile = LevelTile.new(OType.pond_side, Layer.overworld, Math.radians(180.0))     }
-            if (neighbors == (right | down | left)) { tile = LevelTile.new(OType.pond_side, Layer.overworld, Math.radians(270.0))     }
+            if (neighbors == (up | right | down))   { tile = LevelTile.new(OType.pond_side, Group.overworld, Math.radians(0.0))       }
+            if (neighbors == (left | up | right))   { tile = LevelTile.new(OType.pond_side, Group.overworld, Math.radians(90.0))      }
+            if (neighbors == (down | left | up))    { tile = LevelTile.new(OType.pond_side, Group.overworld, Math.radians(180.0))     }
+            if (neighbors == (right | down | left)) { tile = LevelTile.new(OType.pond_side, Group.overworld, Math.radians(270.0))     }
             
             pond_map[cell.x, cell.y] = tile
         }
@@ -137,7 +145,7 @@ class Pond {
         }
 
         for (cell in new_frontier) {
-            pond_map[cell.x, cell.y] = LevelTile.new(OType.pond_deep, Layer.overworld)
+            pond_map[cell.x, cell.y] = LevelTile.new(OType.pond_deep, Group.overworld)
         }
 
         // Apply pond to grid. Also get the aabb of the pond.
@@ -160,6 +168,9 @@ class Pond {
     }
 }
 
-import "types" for OType, Layer
-import "directions" for Directions
+
+// Already in module registry.
 import "components" for LevelTile
+
+
+System.print("16 - Pond")

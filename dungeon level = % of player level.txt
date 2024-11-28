@@ -1,0 +1,18 @@
+dungeon level = % of player level
+
+easy = 50% player level
+med  = 75%
+hard = 100%
+
+thus, hard is always 2x difficult as easy
+
+starting lvl 3
+5 + 5 hp
+4 + 1 dmg
+0 + 1 def
+
+(allow reshuffle on gameover)
+try again = same start
+get better = -1 dmg, +1 def
+revenge = -5 hp, +1 dmg
+

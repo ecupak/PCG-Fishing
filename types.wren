@@ -1,8 +1,18 @@
-class Layer {
+System.print("03 + Types")
+
+
+class Group {
     static none         { 0 }
     static shared       { 1 }
     static overworld    { 2 }
     static dungeon      { 3 }
+    static gear         { 4 }
+
+    static coin_perk        { 5 }
+    static health_perk      { 6 }
+    static attack_perk      { 7 }
+    static lose_hp_perk     { 8 }
+    static trap_perk        { 9 }
 
     static [index] {
         if (shared) return SType
@@ -12,43 +22,50 @@ class Layer {
     }
 }
 
+class GType { 
+    static empty        { 0 <<  0 }
+
+    static pole       { 1 <<  0 }
+    static bobber     { 1 <<  1 }
+    static hook       { 1 <<  2 }
+
+    // Combinations
+    static gear         { pole | bobber | hook }
+}
+
 class SType {
     static empty        { 0 <<  0 }  
 
     static player       { 1 <<  0 }
 
-    static i_key        { 1 <<  1 }
-    static i_coin       { 1 <<  2 }
-    static i_bubble     { 1 <<  3 }
-    static i_health     { 1 <<  4 }
+    static key        { 1 <<  1 }
+    static coin       { 1 <<  2 }
+    static bubble     { 1 <<  3 }
+    static health     { 1 <<  4 }
 
-    static i_rod        { 1 <<  5 }
-    static i_axe        { 1 <<  6 }
-    static i_shovel     { 1 <<  7 }
-    static i_pick       { 1 <<  8 }    
+    static rod        { 1 <<  5 }
+    static axe        { 1 <<  6 }
+    static shovel     { 1 <<  7 }
+    static pick       { 1 <<  8 }    
 
-    static i_wood       { 1 <<  9 }
-    static i_bone       { 1 << 10 }
+    static wood       { 1 <<  9 }
+    static bone       { 1 << 10 }
 
-    static i_rose       { 1 << 11 }
-    static i_marigold   { 1 << 12 }
-    static i_iris       { 1 << 13 }
+    static rose       { 1 << 11 }
+    static marigold   { 1 << 12 }
+    static iris       { 1 << 13 }
 
-    static i_ruby       { 1 << 14 }
-    static i_amethyst   { 1 << 15 }
-    static i_peridot    { 1 << 16 }
+    static ruby       { 1 << 14 }
+    static amethyst   { 1 << 15 }
+    static peridot    { 1 << 16 }
 
-    static i_map        { 1 << 17 }
-
-    static i_pole       { 1 << 18 }
-    static i_bobber     { 1 << 19 }
-    static i_hook       { 1 << 20 }
+    static map        { 1 << 17 }
 
     // Combinations.
-    static tools        { i_rod | i_axe | i_shovel | i_pick }
-    static flowers      { i_rose | i_marigold | i_iris }
-    static gems         { i_ruby | i_amethyst | i_peridot }
-    static items        { i_key | i_coin | i_rod | i_axe | i_shovel | i_pick | i_bubble | i_health | i_wood | i_bone | i_rose | i_marigold | i_iris | i_ruby | i_amethyst | i_peridot | i_map }
+    static tools        { rod | axe | shovel | pick }
+    static flowers      { rose | marigold | iris }
+    static gems         { ruby | amethyst | peridot }
+    static items        { key | coin | rod | axe | shovel | pick | bubble | health | wood | bone | rose | marigold | iris | ruby | amethyst | peridot | map }
 }
 
 /// Overworld types.
@@ -121,3 +138,6 @@ class DType {
     static hero_block       { obstacle | enemy }
     static monster_block    { obstacle | enemy }    
 }
+
+
+System.print("03 - Types")

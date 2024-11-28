@@ -1,9 +1,13 @@
+System.print("01 + Game")
+
+
 import "xs" for Data, Input, Render
 import "xs_ec"for Entity
 import "xs_tools" for Tools
 import "background" for Background
 
-// There needs class called Game in you main file
+
+// There needs to be a class called Game in you main file
 class Game {
 
     // There are the states of the game
@@ -21,7 +25,7 @@ class Game {
         DungeonTile.initialize()
         Tools.initialize()
         Create.initialize()
-        PartMaker.initialize()
+        Craft.initialize()
         Gameplay.initialize()
         
         __time = 0        
@@ -29,6 +33,8 @@ class Game {
         __background = Background.new()
 
         __genFiber = Fiber.new { Gameplay.dungeon_level.build(0) }
+
+        Gameplay.beginGame(0)
     }   
     
     // Update the game, which means updating all the systems
@@ -68,9 +74,15 @@ class Game {
         __background.render()
         Gameplay.render()
     }
- }
+}
 
-/// Import classes from other files that might have circular dependencies (import each other)
-import "create" for Create
-import "parts" for PartMaker
+
+// New modules.
 import "gameplay" for Level, OverworldTile, DungeonTile, Gameplay
+
+// Now in module registry from "gameplay".
+import "create" for Create
+import "craft" for Craft
+
+
+System.print("01 - Game")
