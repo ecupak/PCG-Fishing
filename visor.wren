@@ -42,9 +42,22 @@ class Visor {
     render(x, y, color) {         
         Render.shape(
             _shape,
-            x, y, 0,        // center
-            1, 0,           // Scale аnd rotation
-            color,     // Multiply color
-            0x0)     // Add color
+            x, y, 
+            0,
+            1, 0,   // Scale аnd rotation
+            color,  // Multiply color
+            0x0     // Add color
+        )
+    }
+
+    render(x, y, depth, color) {         
+        Render.shape(
+            _shape,
+            x, y, 
+            depth,
+            1, 0,
+            color,
+            0x0
+        )
     }
 }

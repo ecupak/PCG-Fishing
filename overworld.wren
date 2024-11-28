@@ -36,7 +36,7 @@ class Overworld is Level {
         for(i in 0...width) {
             for(j in 0...height) {
                 var grass = Tools.pickOne([OType.grass_a, OType.grass_a, OType.grass_b, OType.grass_c])
-                this[i, j] = LevelTile.new(grass, Layer.overworld)
+                this[i, j] = LevelTile.new(grass, Group.overworld)
             }
         }
     }
@@ -46,7 +46,7 @@ class Overworld is Level {
             for(j in 0...height) {
                 if (Tools.random.int(0, 100) < 30) {
                     var tree = Tools.pickOne([OType.tree_a, OType.tree_b, OType.tree_c])
-                    this[i, j] = LevelTile.new(tree, Layer.overworld)
+                    this[i, j] = LevelTile.new(tree, Group.overworld)
                 }
             } 
         }
@@ -57,7 +57,7 @@ class Overworld is Level {
         for (i in 0...amount) {
             var pos = getRandomGrassyPointOnMap(1)
         
-            var flower = Tools.pickOne([SType.i_rose, SType.i_marigold, SType.i_iris])
+            var flower = Tools.pickOne([SType.rose, SType.marigold, SType.iris])
             Create.item(pos.x, pos.y, flower, 1)
         }
     }
@@ -67,12 +67,12 @@ class Overworld is Level {
 
         var pos_a = getRandomGrassyPointOnMap(1)
         
-        while (!Gameplay.checkTile(pos_a + Directions[2], OType.grasses, Layer.overworld)) {
+        while (!Gameplay.checkTile(pos_a + Directions[2], OType.grasses, Group.overworld)) {
             pos_a = getRandomGrassyPointOnMap(1)
         }
 
-        this[pos_a] = LevelTile.new(OType.grave_marker, Layer.overworld)
-        this[pos_a + Directions[2]] = LevelTile.new(OType.grave_soil, Layer.overworld)        
+        this[pos_a] = LevelTile.new(OType.grave_marker, Group.overworld)
+        this[pos_a + Directions[2]] = LevelTile.new(OType.grave_soil, Group.overworld)        
     }
 
     addRocks(rock_type) {
@@ -80,7 +80,7 @@ class Overworld is Level {
         var amount = Tools.random.int(1, 4)
         for (i in 0...amount) {
             var pos = getRandomGrassyPointOnMap(2)        
-            this[pos] = LevelTile.new(rock_type, Layer.overworld)
+            this[pos] = LevelTile.new(rock_type, Group.overworld)
         }
     }
 
@@ -98,12 +98,12 @@ class Overworld is Level {
             
             // Check if placing on ground or pond.
             if (Bits.checkBitFlagOverlap(this[i, j].type, OType.water)) {
-                this[i, j] = LevelTile.new(OType.bridge, Layer.overworld)
+                this[i, j] = LevelTile.new(OType.bridge, Group.overworld)
             } else {
                 // Only allow path changes periodically (and not over water).
                 can_change = can_change + 1
 
-                this[i, j] = LevelTile.new(OType.road, Layer.overworld)
+                this[i, j] = LevelTile.new(OType.road, Group.overworld)
 
                 // If path tries to change, determine if the new cell is different.
                 if (can_change > 2 && Tools.random.int(0, 100) < 80) {
@@ -123,7 +123,7 @@ class Overworld is Level {
                 // If path changed, add connecting road to avoid disjointed path.
                 if (did_change) {
                     var path_type = (Bits.checkBitFlagOverlap(this[i, j].type, OType.water) ? OType.bridge : OType.road)
-                    this[i, j] = LevelTile.new(path_type, Layer.overworld)
+                    this[i, j] = LevelTile.new(path_type, Group.overworld)
                 }
             }
         }
@@ -146,7 +146,7 @@ class Overworld is Level {
                 for (i in 0...4) {
                     pos = fork + Directions[dir] * (i + 1)
                     if (this.contains(pos)) {
-                        this[pos] = LevelTile.new(OType.road, Layer.overworld)
+                        this[pos] = LevelTile.new(OType.road, Group.overworld)
                     }
                 }
 
@@ -163,17 +163,17 @@ class Overworld is Level {
             for (i in 0...4) {
                 pos = fork + dir * (i + 1)
                 if (this.contains(pos)) {
-                    this[pos] = LevelTile.new(OType.road, Layer.overworld)
+                    this[pos] = LevelTile.new(OType.road, Group.overworld)
                 }
             }
         }
 
         // Place buildings.
         Create.building(pos.x - 1, pos.y, OType.shop)
-        this[pos.x - 1, pos.y] = LevelTile.new(OType.road, Layer.overworld)
+        this[pos.x - 1, pos.y] = LevelTile.new(OType.road, Group.overworld)
 
         Create.building(pos.x + 1, pos.y, OType.inn)
-        this[pos.x + 1, pos.y] = LevelTile.new(OType.road, Layer.overworld)
+        this[pos.x + 1, pos.y] = LevelTile.new(OType.road, Group.overworld)
 
         return start_pos
     }
@@ -182,7 +182,7 @@ class Overworld is Level {
     getRandomGrassyPointOnMap(padding) {
         var pos = getRandomPointOnMap(padding)
 
-        while (!Gameplay.checkTile(pos, OType.grasses, Layer.overworld)) {
+        while (!Gameplay.checkTile(pos, OType.grasses, Group.overworld)) {
             pos = getRandomPointOnMap(padding)
         }
 
@@ -198,6 +198,6 @@ class Overworld is Level {
 
 import "gameplay" for Gameplay
 import "pond" for Pond
-import "types" for SType, OType, Layer
+import "types" for SType, OType, Group
 import "create" for Create
 import "directions" for Directions

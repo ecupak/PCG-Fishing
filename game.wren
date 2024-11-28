@@ -21,7 +21,7 @@ class Game {
         DungeonTile.initialize()
         Tools.initialize()
         Create.initialize()
-        PartMaker.initialize()
+        Craft.initialize()
         Gameplay.initialize()
         
         __time = 0        
@@ -29,6 +29,8 @@ class Game {
         __background = Background.new()
 
         __genFiber = Fiber.new { Gameplay.dungeon_level.build(0) }
+
+        Gameplay.beginGame(0)
     }   
     
     // Update the game, which means updating all the systems
@@ -71,6 +73,6 @@ class Game {
  }
 
 /// Import classes from other files that might have circular dependencies (import each other)
-import "create" for Create
-import "parts" for PartMaker
 import "gameplay" for Level, OverworldTile, DungeonTile, Gameplay
+import "create" for Create
+import "craft" for Craft

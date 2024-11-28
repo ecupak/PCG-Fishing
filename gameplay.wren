@@ -62,28 +62,28 @@ class Gameplay {
             
             SType.player: Render.createGridSprite(tileset, r, c, Tools.pickOne([74, 76, 77])),
 
-            SType.i_key: Render.createGridSprite(tileset, r, c, 571),
-            SType.i_coin: Render.createGridSprite(tileset, r, c, 237),
-            SType.i_bubble: Render.createGridSprite(tileset, r, c, 574),
-            SType.i_health: Render.createGridSprite(tileset, r, c, 529),
+            SType.key: Render.createGridSprite(tileset, r, c, 571),
+            SType.coin: Render.createGridSprite(tileset, r, c, 237),
+            SType.bubble: Render.createGridSprite(tileset, r, c, 574),
+            SType.health: Render.createGridSprite(tileset, r, c, 529),
             
-            SType.i_rod: Render.createGridSprite(tileset, r, c, 0),
-            SType.i_axe: Render.createGridSprite(tileset, r, c, 433),
-            SType.i_shovel: Render.createGridSprite(tileset, r, c, 287),
-            SType.i_pick: Render.createGridSprite(tileset, r, c, 288),
+            SType.rod: Render.createGridSprite(tileset, r, c, 0),
+            SType.axe: Render.createGridSprite(tileset, r, c, 433),
+            SType.shovel: Render.createGridSprite(tileset, r, c, 287),
+            SType.pick: Render.createGridSprite(tileset, r, c, 288),
 
-            SType.i_wood: Render.createGridSprite(tileset, r, c, 139),
-            SType.i_bone: Render.createGridSprite(tileset, r, c, 139),
+            SType.wood: Render.createGridSprite(tileset, r, c, 139),
+            SType.bone: Render.createGridSprite(tileset, r, c, 139),
 
-            SType.i_rose: Render.createGridSprite(tileset, r, c, 309),
-            SType.i_marigold: Render.createGridSprite(tileset, r, c, 310),
-            SType.i_iris: Render.createGridSprite(tileset, r, c, 311),
+            SType.rose: Render.createGridSprite(tileset, r, c, 309),
+            SType.marigold: Render.createGridSprite(tileset, r, c, 310),
+            SType.iris: Render.createGridSprite(tileset, r, c, 311),
 
-            SType.i_ruby: Render.createGridSprite(tileset, r, c, 219),
-            SType.i_amethyst: Render.createGridSprite(tileset, r, c, 219),
-            SType.i_peridot: Render.createGridSprite(tileset, r, c, 219),
+            SType.ruby: Render.createGridSprite(tileset, r, c, 219),
+            SType.amethyst: Render.createGridSprite(tileset, r, c, 219),
+            SType.peridot: Render.createGridSprite(tileset, r, c, 219),
             
-            SType.i_map: Render.createGridSprite(tileset, r, c, 767),
+            SType.map: Render.createGridSprite(tileset, r, c, 767),
         }
 
         var player_color = Data.getColor("Player Color")
@@ -110,28 +110,28 @@ class Gameplay {
             
             SType.player: player_color,
 
-            SType.i_key: c_door_key,
-            SType.i_coin: gold,
-            SType.i_bubble: blue,
-            SType.i_health: health,
+            SType.key: c_door_key,
+            SType.coin: gold,
+            SType.bubble: blue,
+            SType.health: health,
             
-            SType.i_rod: 0x0,
-            SType.i_axe: tool,
-            SType.i_shovel: tool,
-            SType.i_pick: tool,
+            SType.rod: 0x0,
+            SType.axe: tool,
+            SType.shovel: tool,
+            SType.pick: tool,
             
-            SType.i_wood: brown,
-            SType.i_bone: c_bone,
+            SType.wood: brown,
+            SType.bone: c_bone,
             
-            SType.i_rose: c_rose,
-            SType.i_marigold: c_marigold,
-            SType.i_iris: c_iris,
+            SType.rose: c_rose,
+            SType.marigold: c_marigold,
+            SType.iris: c_iris,
             
-            SType.i_ruby: c_ruby,
-            SType.i_amethyst: c_amethyst,
-            SType.i_peridot: c_peridot,
+            SType.ruby: c_ruby,
+            SType.amethyst: c_amethyst,
+            SType.peridot: c_peridot,
 
-            SType.i_map: brown,
+            SType.map: brown,
         }
 
         // "Sheet" to dim overworld and background when dungeon is up.
@@ -248,7 +248,7 @@ class Gameplay {
 
         // Start!
         __menu = Menu.new()
-        beginGame(0)
+        //beginGame(0)
     }
 
     static update(dt) {
@@ -313,8 +313,11 @@ class Gameplay {
         swapHeroTile(hero_start, overworld_overtiles, dungeon_overtiles)
 
         // Remove all keys and maps (items, not data structs).
-        Hero.hero.inventory.add(SType.i_key, -10)
-        Hero.hero.inventory.add(SType.i_map, -10)
+        Hero.hero.inventory.add(SType.key, -10)
+        Hero.hero.inventory.add(SType.map, -10)
+
+        // Restore air.
+        Hero.hero.air = Hero.hero.max_air
 
         // Start!
         __turn = heroTurn
@@ -370,8 +373,11 @@ class Gameplay {
         // Start in overworld state.
         __world_state = overworld_state
 
-        // Create overworld and place hero.
+        // Create hero and give starting item.
         Create.hero(start_mode)
+        Hero.hero.gainStartingEquipment()
+
+        // Create overworld and place hero.
         var hero_start = overworld_level.build()
         var hero_tile = overworld_overtiles.new(hero_start.x, hero_start.y)
         Hero.hero.owner.add(hero_tile)
@@ -382,26 +388,26 @@ class Gameplay {
     }
 
     /// Finds the combined bitflags of the level and dynamic tiles at location.
-    static getFlags(x, y, layer) {
+    static getFlags(x, y, group) {
         var flags = 0
 
         if(current_level.contains(x, y)) {        
             // Undertile flag.
             var under_tile = current_level[x, y]
-            if (under_tile.layer == layer) flags = under_tile.type
+            if (under_tile.group == group) flags = under_tile.type
 
             // Overtile flag.
             var over_tile = current_overtiles.get(x, y)
-            if(over_tile != null && over_tile.owner.layer == layer) flags = (flags | over_tile.owner.tag)
+            if(over_tile != null && over_tile.owner.group == group) flags = (flags | over_tile.owner.tag)
         }
 
         return flags
     }
 
     /// Check if the tile in the direction has a given type flag
-    static checkTile(pos, type, layer) {
-        // Get the flags of the tiles if they match the wanted layer.
-        var flags = getFlags(pos.x, pos.y, layer)
+    static checkTile(pos, type, group) {
+        // Get the flags of the tiles if they match the wanted group.
+        var flags = getFlags(pos.x, pos.y, group)
         // Compare to the wanted type.
         return Bits.checkBitFlagOverlap(flags, type)
     }
@@ -449,15 +455,15 @@ class Gameplay {
                 if(overtile != null) {
                     var pos = level.calculatePos(overtile)
 
-                    // Find the layer of the tile and use that to figure out the lookup tables to use.
-                    var on_shared_layer = (overtile.owner.layer == Layer.shared)
+                    // Find the group of the tile and use that to figure out the lookup tables to use.
+                    var in_shared_group = (overtile.owner.group == Group.shared)
                     var tag = overtile.owner.tag
-                    var sprite = (on_shared_layer ? shared_tiles[tag] : undertiles[tag])
-                    var color = (on_shared_layer ? shared_colors[tag] : colors[tag])
+                    var sprite = (in_shared_group ? shared_tiles[tag] : undertiles[tag])
+                    var color = (in_shared_group ? shared_colors[tag] : colors[tag])
 
                     Render.sprite(sprite, pos.x, pos.y, 0.0, 1.0, 0.0, color, 0x0, Render.spriteCenter)
 
-                // Otherwise, render the undertile instead. Undertiles are always on the level's default layer.
+                // Otherwise, render the undertile instead. Undertiles are always in the level's default group.
                 } else {
                     var sprite = undertiles[level_tile.type]
                     var color = colors[level_tile.type]
@@ -494,7 +500,7 @@ class Gameplay {
 
 import "menu" for Menu
 import "visor" for Visor
-import "types" for SType, OType, DType, Layer
+import "types" for SType, OType, DType, Group
 import "create" for Create
 import "dungeon" for Dungeon
 import "overworld" for Overworld

@@ -4,7 +4,10 @@ import "xs_ec"for Entity, Component
 import "xs_components" for Transform, Body, Renderable, Sprite, GridSprite, AnimatedSprite
 import "xs_tools" for Tools
 import "random" for Random
-import "types" for SType, OType, DType, Layer
+
+import "types" for SType, OType, DType, Group
+import "components" for Character, Monster, OverworldTile, DungeonTile, Level, Stats, Amount
+import "hero" for Hero
 
 /// This class is used to create entities in the game
 /// by adding components to them
@@ -37,29 +40,29 @@ class Create {
         __itemNames = {
             0: "???",
             
-            SType.i_key: "Key",
-            SType.i_coin: "Coin",
+            SType.key: "Key",
+            SType.coin: "Coin",
 
-            SType.i_rod: "Rod",
-            SType.i_axe: "Axe",
-            SType.i_shovel: "Shovel",
-            SType.i_pick: "Pick",
+            SType.rod: "Rod",
+            SType.axe: "Axe",
+            SType.shovel: "Shovel",
+            SType.pick: "Pick",
             
-            SType.i_bubble: "Bubble",
-            SType.i_health: "Health",
+            SType.bubble: "Bubble",
+            SType.health: "Health",
 
-            SType.i_wood: "Wood",
-            SType.i_bone: "Bone",
+            SType.wood: "Wood",
+            SType.bone: "Bone",
 
-            SType.i_rose: "Rose",
-            SType.i_marigold: "Marigold",
-            SType.i_iris: "Iris",
+            SType.rose: "Rose",
+            SType.marigold: "Marigold",
+            SType.iris: "Iris",
 
-            SType.i_ruby: "Ruby",
-            SType.i_amethyst: "Amethyst",
-            SType.i_peridot: "Peridot",
+            SType.ruby: "Ruby",
+            SType.amethyst: "Amethyst",
+            SType.peridot: "Peridot",
 
-            SType.i_map: "Map",
+            SType.map: "Map",
         }
 
         /*
@@ -72,13 +75,13 @@ class Create {
         */
 
         __droptables = [
-            [SType.i_coin, SType.i_health],
-            [SType.i_coin, SType.i_coin, SType.i_coin, SType.i_health, SType.i_health, SType.i_axe, SType.i_pick],
-            [SType.i_health, SType.i_axe, SType.i_shovel, SType.i_pick],
-            [SType.i_health, SType.i_axe, SType.i_shovel, SType.i_pick, SType.i_rose, SType.i_marigold, SType.i_iris],
-            [SType.i_health, SType.i_rose, SType.i_marigold, SType.i_iris, SType.i_ruby, SType.i_amethyst, SType.i_peridot],
-            [SType.i_health, SType.i_rose, SType.i_marigold, SType.i_iris, SType.i_ruby, SType.i_amethyst, SType.i_peridot],
-            [SType.i_bone],
+            [SType.coin, SType.health],
+            [SType.coin, SType.coin, SType.coin, SType.health, SType.health, SType.axe, SType.pick],
+            [SType.health, SType.axe, SType.shovel, SType.pick],
+            [SType.health, SType.axe, SType.shovel, SType.pick, SType.rose, SType.marigold, SType.iris],
+            [SType.health, SType.rose, SType.marigold, SType.iris, SType.ruby, SType.amethyst, SType.peridot],
+            [SType.health, SType.rose, SType.marigold, SType.iris, SType.ruby, SType.amethyst, SType.peridot],
+            [SType.bone],
         ]
     }
 
@@ -113,7 +116,7 @@ class Create {
         entity.add(stats)
         
         entity.tag = SType.player
-        entity.layer = Layer.shared
+        entity.group = Group.shared
         
         entity.name = "Hero"
         
@@ -127,7 +130,7 @@ class Create {
         entity.add(tile)
 
         entity.tag = Gameplay.current_type.target_bad
-        entity.layer = Layer.overworld
+        entity.group = Group.overworld
         entity.name = "Target"
 
         return entity
@@ -145,7 +148,7 @@ class Create {
         entity.add(stats)
         
         entity.tag = type
-        entity.layer = Layer.dungeon
+        entity.group = Group.dungeon
         entity.name = __monsterNames[type]
 
         return entity
@@ -178,15 +181,15 @@ class Create {
 
         var item_type = Tools.pickOne(__droptables[drop_table_idx])
         entity.tag = item_type
-        entity.layer = Layer.shared
+        entity.group = Group.shared
         entity.name = __itemNames[item_type]
         
         // Set amount found.
         var item_count = 1
 
-        if (item_type == SType.i_coin) {
+        if (item_type == SType.coin) {
             item_count = (1 + drop_table_idx) * Tools.random.int(2, 5)
-        } else if (item_type == SType.i_health) {
+        } else if (item_type == SType.health) {
             item_count = Math.min(100, (1 + drop_table_idx) * Tools.random.int(10, 15 + drop_table_idx))
         } else if (Bits.checkBitFlagOverlap(item_type, SType.flowers)) {
             item_count = Tools.random.int(1, drop_table_idx)
@@ -209,7 +212,7 @@ class Create {
         var amount = Amount.new(item_amount)
         entity.add(amount)
         entity.tag = item_type
-        entity.layer = Layer.shared
+        entity.group = Group.shared
         entity.name = __itemNames[item_type]
         return entity
     }
@@ -220,7 +223,7 @@ class Create {
         entity.add(tile)
         var type = DType.gate
         entity.tag = type
-        entity.layer = Layer.dungeon
+        entity.group = Group.dungeon
         entity.name = "gate"
         return entity
     }
@@ -232,7 +235,7 @@ class Create {
         entity.add(tile)
         
         entity.tag = type
-        entity.layer = Layer.overworld
+        entity.group = Group.overworld
 
         entity.name = "Building"
 
@@ -240,5 +243,6 @@ class Create {
     }
 }
 
+
 import "gameplay" for Gameplay
-import "components" for Hero, Monster, OverworldTile, DungeonTile, Level, Stats, Amount
+

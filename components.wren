@@ -4,27 +4,31 @@ import "xs_math"for Math, Bits, Vec2, Color
 import "xs_containers" for Grid, SparseGrid, Queue, RingBuffer
 import "xs_tools" for Tools
 
+import "delegate" for PerkTrigger
+import "types" for SType, DType, Group
+
+
 class LevelTile { // under tile
     construct new() {
         _type = 0
-        _layer = 0
+        _group = 0
         _rotation = 0
     }
 
-    construct new(type, layer) {
+    construct new(type, group) {
         _type = type
-        _layer = layer
+        _group = group
         _rotation = 0
     }
 
-    construct new(type, layer, rotation) {
+    construct new(type, group, rotation) {
         _type = type
-        _layer = layer
+        _group = group
         _rotation = rotation
     }
 
     type {_type}
-    layer {_layer}
+    group {_group}
     rotation {_rotation}
 }
 
@@ -248,6 +252,7 @@ class DungeonTile is Component {
 
 class Stats is Component {
     construct new(health, damage, armor, drop) {
+        _max_hp = health
         _health = health    // Health points
         _damage = damage    // Damage points
         _armor = armor      // Armor points
@@ -260,23 +265,25 @@ class Stats is Component {
     clone() { Stats.new(_health, _damage, _armor, _drop) }
 
     add(other) {
+        _max_hp = _max_hp + other.max_hp
         _health = _health + other.health
         _damage = _damage + other.damage
         _armor = _armor + other.armor
         _drop = _drop + other.drop
     }
 
+    max_hp { _max_hp }
     health { _health }
     damage { _damage }
     armor { _armor }
     drop { _drop }
 
+    max_hp=(v) { _max_hp = v }
     health=(v) { _health = v }
     damage=(v) { _damage = v }
     armor=(v) { _armor = v }
     drop=(v) { _drop = v }
 }
-
 
 /// A base class for all characters in the game.
 /// Used by the hero and the monsters.
@@ -285,6 +292,8 @@ class Character is Component {
     construct new(attackable, layer, level) {
         _attackable = [attackable, layer]
         _level = level
+
+        _onCoinPickup = PerkTrigger.new()
     }
 
     /// Initialize the character by caching the stats and the tile.
@@ -315,8 +324,6 @@ class Character is Component {
         return Gameplay.checkTile(pos, type, layer)
     }
 
-    // checkTileLayer ?
-
     /// Move the tile in the direction
     move(dir) {
         _tile.move(Directions[dir])
@@ -324,25 +331,41 @@ class Character is Component {
 
     /// Attack the tile in the direction
     attack(dir) {
+        var gained_xp = 0
+
         System.print("Attacking from position [%(_tile.x), %(_tile.y)] in direction [%(Directions[dir])]")
+
         var pos = _tile.pos + Directions[dir]
         if (checkTile(pos, _attackable[0], _attackable[1])) {
             var other = Gameplay.current_overtiles.get(pos.x, pos.y)
             var stats = other.owner.get(Stats)
-            
+        
+            // Get components of the attacker and defender.
+            var attacker_perks = owner.components
+            var defender_perks = other.owner.components
+
+            // Deal damage.            
             var damage = Math.max(1, _stats.damage - stats.armor) // always deal 1 dmg
             stats.health = stats.health - damage
-            Gameplay.message =  "%(owner.name) deals %(damage) damage to %(other.owner.name)"
+            Gameplay.message = "%(owner.name) deals %(damage) damage to %(other.owner.name)"
 
+            // Check for death.
             if (stats.health <= 0) {
                 Gameplay.message = "%(owner.name) kills %(other.owner.name)"                
                 other.owner.delete()
-                if (Tools.random.float(0.0, 1.0) < stats.drop) Create.droptable_item(pos.x, pos.y, level)
-                return other.owner.get(Character).level + 1
-            }        
-            return 0
+                gained_xp = other.owner.get(Character).level + 1
+
+                // Drop loot.
+                if (Tools.random.float(0.0, 1.0) < stats.drop) Create.droptable_item(pos.x, pos.y, level)                
+            }
         }
+
+        // Return xp.
+        return gained_xp
     }
+
+    /// A list of dispatchers.
+    onCoinPickup {_onCoinPickup}
 
     /// Get the tile of the character
     tile { _tile }
@@ -353,172 +376,13 @@ class Character is Component {
     level=(v) {_level = v}
 }
 
-/// A class that represents the hero of the game.
-/// The hero is also a singleton, so there is only one hero in the game.
-class Hero is Character {        
-    /// Player singleton turn
-    static turn() {
-        if(__hero) return __hero.turn()
-    }    
-
-    /// Get the hero singleton
-    static hero { __hero }
-
-    /// Create a new hero component
-    construct new() {
-        super(DType.enemy, Layer.dungeon, 1)
-        // Input helpers.
-        _buttons = [Input.gamepadDPadUp,
-                    Input.gamepadDPadRight,
-                    Input.gamepadDPadDown,
-                    Input.gamepadDPadLeft ]
-        
-        _keys = [   Input.keyUp,
-                    Input.keyRight,
-                    Input.keyDown,
-                    Input.keyLeft]
-        
-        // Hero data.
-        _inventory = Inventory.new() // regular items and tools
-        _parts = {} // int : part // parts and perks; too many to store as bitflags
-        _state = HeroWalking
-        _prev_overworld_pos = Vec2.new()
-        _air = 100
-        _max_air = 100
-        _max_hp = 10
-        _xp = 4
-        _xp_to_level = 5
-
-        inventory.add(SType.i_axe, 4)
-        inventory.add(SType.i_pick, 3)
-        inventory.add(SType.i_shovel, 2)
-
-        inventory.add(SType.i_marigold, 1)
-        inventory.add(SType.i_coin, 50)
-        inventory.add(SType.i_peridot, 1)
-        inventory.add(SType.i_bone, 1)
-        inventory.add(SType.i_rose, 1)
-        inventory.add(SType.i_key, 1)
-        inventory.add(SType.i_amethyst, 1)
-        inventory.add(SType.i_ruby, 1)
-        inventory.add(SType.i_map, 1)
-        inventory.add(SType.i_iris, 1)
-
-        // Access helper.
-        __hero = this
-    }
-
-    /// Player turn logic
-    turn() {        
-        var action = getAction()
-        var dir = getDirection()
-        var next_state = _state.handleInput(this, action, dir)
-
-        if (next_state != null) {
-            _state.exit(this)
-            _state = next_state
-            _state.enter(this)
-
-            return true
-        }
-
-        return false
-    }
-    
-    setState(new_state) {
-        if (new_state == null) return
-
-        if (_state != null) _state.exit(this)
-
-        _state = new_state
-        _state.enter(this)
-    }
-
-    resetState(gameplay_state) {
-        var next_state = (Gameplay.world_state == Gameplay.overworld_state ? HeroWalking : HeroExploring)
-        
-        setState(next_state)
-    }
-
-    addXp(amount) {
-        // Add and check if level up.
-        _xp = _xp + amount
-        if (_xp >= _xp_to_level) {
-            _xp = _xp - _xp_to_level
-            level = level + 1
-            _xp_to_level = _xp_to_level + 5
-
-            Menu.openLevelUpMenu()
-        }
-    }
-
-    loseAir(v) {
-        air = air - v
-        if (air <= 0) Menu.openGameOverMenu()
-    }
-
-    // Use tools (triggered by menu selection).
-    useRod() { setState(HeroCasting) }
-    useAxe() { setState(HeroCutting) }
-    usePick() { setState(HeroMining) }
-    useShovel() { setState(HeroDigging) }
-
-    /// Get the direction of the player input
-    getDirection() {
-        for(dir in 0...4) {
-            if(Input.getButtonOnce(_buttons[dir]) || Input.getKeyOnce(_keys[dir])) {
-                return dir
-            }
-        }
-        return -1
-    }
-
-    /// Get the action of the player input.
-    getAction() {
-        if (Input.getButtonOnce(Input.gamepadButtonSouth) || Input.getKeyOnce(Input.keyE)) {
-            return 1
-        }
-
-        if (Input.getButtonOnce(Input.gamepadButtonWest) || Input.getKeyOnce(Input.keyQ)) {
-            return -1
-        }
-
-        return 0
-    }
-
-    /// Called when map is swapped between overworld and dungeon.
-    /// Let's hero reassign their tile to the new tile component.
-    reinitialize() {
-        initialize()
-    }
-
-    /// Finalize the hero singleton by setting it to null
-    finalize() {
-        __hero = null
-        Menu.openGameOverMenu()
-    }
-
-    inventory { _inventory }
-    
-    max_hp {_max_hp}
-    max_hp=(v) {_max_hp = v}
-
-    air {_air}
-    air=(v) {_air = v}
-
-    max_air {_max_air}
-
-    prev_overworld_pos { _prev_overworld_pos }
-    prev_overworld_pos=(v) { _prev_overworld_pos = v }
-}
-
 /// A class that represents the monsters in the game.
 /// The monsters are controlled by the computer and the class
 /// contains the logic to play a turn for all the monsters.
 class Monster is Character {
     /// Create a new monster component
     construct new(level) {
-        super(SType.player, Layer.shared, level)
+        super(SType.player, Group.shared, level)
         
         var stats = Stats.new(1, 1, 1, 1)
     }
@@ -531,7 +395,7 @@ class Monster is Character {
                 attack(dir)
                 __loudness = 5
                 Hero.hero.loseAir(1)
-            } else if(!checkTile(dir, DType.monster_block, Layer.dungeon)) {
+            } else if(!checkTile(dir, DType.monster_block, Group.dungeon)) {
                 move(dir)
                 return 1
             }
@@ -555,7 +419,7 @@ class Monster is Character {
             __turn_order = Queue.new()
             __loudness = 0
 
-            var entities = Entity.withTagOverlapInLayer(DType.enemy, Layer.dungeon)
+            var entities = Entity.withTagOverlapInGroup(DType.enemy, Group.dungeon)
             if (entities.count == 0) return 1
             
             for(e in entities) __turn_order.push(e)
@@ -596,7 +460,7 @@ class Monster is Character {
                     var dir = __ring.read()
                     var nghb = next + Directions[dir]
                     if(Gameplay.current_level.contains(nghb.x, nghb.y) && !__fill.has(nghb.x, nghb.y)) {
-                        if (!Gameplay.checkTile(nghb, DType.obstacle, Layer.dungeon) && !Gameplay.checkTile(nghb, SType.items, Layer.shared)) {
+                        if (!Gameplay.checkTile(nghb, DType.obstacle, Group.dungeon) && !Gameplay.checkTile(nghb, SType.items, Group.shared)) {
                             __fill[nghb.x, nghb.y] = (dir + 2) % 4 // Opposite direction 
                             open.push(nghb)
                             count.push(cur_count + 1)
@@ -634,9 +498,52 @@ class Amount is Component {
     amount {_amount}
 }
 
-import "types" for SType, DType, Layer
+class Gear is Component {
+    construct new(id, part, material, perk, perk_slots) {
+        _id = id
+        _part = part
+        _material = material
+
+        _primary_perk = perk
+        System.print("Gear perk: %(RichesPerk)")
+
+        _perk_slots = perk_slots
+        _accessory_perks = []
+        
+        _level = 1        
+        _is_equipped = false
+    }
+
+    add(perk) {
+        if (_accessory_perks.count == _slots) return false
+        // Add to gear's list of perk data.
+        _accessory_perks.add([perk.skill, perk.level])
+
+        // If currently equipped, auto-add as perk component.
+        if (_is_equipped) Hero.hero.owner.add(perk.skill.new(perk.level))
+
+        return true
+    }
+
+    id {_id}
+    part {_part}
+    material {_material}
+
+    primary_perk {_primary_perk}
+    perk_slots {_perk_slots}    
+    accessory_perks {_accessory_perks}
+
+    level {_level}
+    is_equipped {_is_equipped}
+    is_equipped=(v) {_is_equipped = v}    
+}
+
+
 import "menu" for Menu
-import "hero" for HeroWalking, HeroCasting, HeroCutting, HeroMining, HeroDigging, HeroExploring, Inventory
+//import "hero" for Inventory, Equipment, HeroWalking, HeroCasting, HeroCutting, HeroMining, HeroDigging, HeroExploring
+import "hero" for Hero
+import "craft" for Craft
+import "perks" for RichesPerk
 import "create" for Create
 import "dungeon" for Dungeon
 import "directions" for Directions

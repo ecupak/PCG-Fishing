@@ -94,6 +94,7 @@ class Dungeon is Level {
     }
 
     build(difficulty) {
+        _difficulty = difficulty
         System.print("Dungeon difficulty: %(difficulty)")
         reset()
 
@@ -134,7 +135,7 @@ class Dungeon is Level {
         // - Room is used to make danger gradient for rooms.
         // - Position is to spawn hero tile in dungeon.
         var hero_start = getHeroStart(rooms, passable_idxs)        
-        setDangerLevels(rooms, hero_start[0], difficulty)
+        setDangerLevels(rooms, hero_start[0])
 
         // Put a locked door in front of each culdesac. Place keys.
         placeDoorsAndKeys(rooms, culdesac_idxs, exit_tiles, passable_idxs, hero_start[0])
@@ -143,7 +144,7 @@ class Dungeon is Level {
         placeMap(rooms, passable_idxs, hero_start[0])
 
         // Place enemies.
-        placeEnemies(rooms, min_size, difficulty, hall_points)
+        placeEnemies(rooms, min_size, hall_points)
 
         return hero_start[1] // Return the starting position.
     }
@@ -276,7 +277,7 @@ class Dungeon is Level {
 
             for (y in room.min.y..room.max.y) {
                 for (x in room.min.x..room.max.x) {                    
-                    this[x, y] = LevelTile.new(DType.floor, Layer.dungeon)
+                    this[x, y] = LevelTile.new(DType.floor, Group.dungeon)
                 }
             }
 
@@ -303,19 +304,19 @@ class Dungeon is Level {
             // Debug - show start-, mid-, and end- points before placing.
             if (__visualize) {
                 // Show...
-                this[point_a.x, point_a.y] = LevelTile.new(DType.e_crab, Layer.dungeon)            
-                this[point_b.x, point_b.y] = LevelTile.new(DType.e_gator, Layer.dungeon)
+                this[point_a.x, point_a.y] = LevelTile.new(DType.e_crab, Group.dungeon)            
+                this[point_b.x, point_b.y] = LevelTile.new(DType.e_gator, Group.dungeon)
                 
                 var prev_mid = this[midpoint.x, midpoint.y]
                 if (midpoint != point_a && midpoint != point_b) {
-                    this[midpoint.x, midpoint.y] = LevelTile.new(DType.e_squid, Layer.dungeon)
+                    this[midpoint.x, midpoint.y] = LevelTile.new(DType.e_squid, Group.dungeon)
                 }
 
                 Fiber.yield(__long_pause)
 
                 // Hide...
-                this[point_a.x, point_a.y] = LevelTile.new(DType.floor, Layer.dungeon)
-                this[point_b.x, point_b.y] = LevelTile.new(DType.floor, Layer.dungeon)
+                this[point_a.x, point_a.y] = LevelTile.new(DType.floor, Group.dungeon)
+                this[point_b.x, point_b.y] = LevelTile.new(DType.floor, Group.dungeon)
                 
                 if (midpoint != point_a && midpoint != point_b) {
                     this[midpoint.x, midpoint.y] = prev_mid
@@ -341,7 +342,7 @@ class Dungeon is Level {
                     count = count + 1
                 }
 
-                this[tile.x, tile.y] = LevelTile.new(DType.floor, Layer.dungeon)
+                this[tile.x, tile.y] = LevelTile.new(DType.floor, Group.dungeon)
 
                 iteration = iteration + 1
             }
@@ -573,7 +574,7 @@ class Dungeon is Level {
                     if (type == DType.floor) {
                         fill.push(check)                        
                     } else if (type == DType.empty) {
-                        this[check] = LevelTile.new(DType.wall, Layer.dungeon)
+                        this[check] = LevelTile.new(DType.wall, Group.dungeon)
                     }
                     visited[check] = true
                 }
@@ -584,7 +585,7 @@ class Dungeon is Level {
                 var check = tile + dir                
 
                 if (this[check].type == DType.empty) {
-                    this[check] = LevelTile.new(DType.wall, Layer.dungeon)
+                    this[check] = LevelTile.new(DType.wall, Group.dungeon)
                 }
             }
         }
@@ -650,7 +651,7 @@ class Dungeon is Level {
         return hero_start
     }
 
-    setDangerLevels(rooms, hero_room_idx, difficulty) {
+    setDangerLevels(rooms, hero_room_idx) {
         // Danger increases further away from hero.
         var visited = {}
         var open = Queue.new()
@@ -662,7 +663,7 @@ class Dungeon is Level {
             var index = next[0]
 
             if (!visited.containsKey(index)) {
-                var danger = next[1] == 0 ? difficulty : next[1]
+                var danger = next[1] == 0 ? _difficulty : next[1]
                 var room = rooms[index]
                 
                 for (entry in room.connections) {
@@ -751,7 +752,7 @@ class Dungeon is Level {
         
         // Place key in the above room.
         var pos = getFreePointInRoom(rooms[key_room_idx])
-        Create.item(pos.x, pos.y, SType.i_key, 1)
+        Create.item(pos.x, pos.y, SType.key, 1)
 
         // One of the locked culdesacs will not have a key replaced with a bubble item.
         // This makes sure the bubble room is not also the key room selected earlier.
@@ -772,7 +773,7 @@ class Dungeon is Level {
                 // If not the bubble room, add key.
                 if (room_idx != bubble_room_idx) {
                     var pos = getFreePointInRoom(rooms[room_idx])
-                    Create.item(pos.x, pos.y, SType.i_key, 1)
+                    Create.item(pos.x, pos.y, SType.key, 1)
                 }
                 
                 Create.door(exit_tiles[i].x, exit_tiles[i].y)
@@ -796,13 +797,13 @@ class Dungeon is Level {
         }
 
         var pos = getFreePointInRoom(rooms[room_idx])
-        Create.item(pos.x, pos.y, SType.i_map, 1)
+        Create.item(pos.x, pos.y, SType.map, 1)
     }
 
-    placeEnemies(rooms, min_size, difficulty, hall_points) {
+    placeEnemies(rooms, min_size, hall_points) {
         // Based on difficulty and danger level, add different enemy combinations.
         var enemy_table = [DType.e_crab, DType.e_eel, DType.e_squid, DType.e_octo, DType.e_gator]
-        enemy_table = enemy_table[0...(3 + difficulty)]
+        enemy_table = enemy_table[0...(3 + _difficulty)]
         
         System.print(enemy_table)
 
@@ -812,7 +813,7 @@ class Dungeon is Level {
             if (room.danger == -1) {
                 // Bubble room.
                 var pos = getFreePointInRoom(room, 1)
-                Create.item(pos.x, pos.y, SType.i_bubble, 1) 
+                Create.item(pos.x, pos.y, SType.bubble, 1) 
 
                 room.danger = 1
             } else if (room.danger == 0) {
@@ -822,7 +823,7 @@ class Dungeon is Level {
 
             var capacity_regulator = 9
             var capacity = Math.max(1, ((room.width * room.height) / capacity_regulator).floor)
-            var danger_value = room.danger * (1 + difficulty)
+            var danger_value = room.danger * (1 + _difficulty)
             System.print("Difficulty %(difficulty) | Room danger %(room.danger) | Danger value %(danger_value) | Capacity %(capacity)")
 
             // Add enemies until danger value has been met. If capacity is reached, "promote" 1 enemy.
@@ -846,15 +847,15 @@ class Dungeon is Level {
             for (i in enemies) {
                 var type = enemy_table[i]
                 var pos = getFreePointInRoom(room, 1)
-                Create.monster(pos.x, pos.y, type, i + difficulty, difficulty)
+                Create.monster(pos.x, pos.y, type, i + _difficulty, _difficulty)
                 System.print("- enemy %(i) placed at %(pos)")
             }
 
             // Create item based on average enemy level and difficulty.
-            var avg_enemy_level = (difficulty / 2).floor
+            var avg_enemy_level = (_difficulty / 2).floor
             for (i in enemies) avg_enemy_level = avg_enemy_level + i
             var droptable_idx = Math.min(Create.droptables_count - 1, (avg_enemy_level / enemies.count).floor)
-            droptable_idx = Math.max(difficulty, droptable_idx)
+            droptable_idx = Math.max(_difficulty, droptable_idx)
             System.print("- - avg level %(avg_enemy_level) | max idx %(Create.droptables_count - 1) | calc idx %((avg_enemy_level / enemies.count).floor)")
 
             var value = Tools.random.int(0, 4) + (1 + difficulty) * 5
@@ -863,7 +864,7 @@ class Dungeon is Level {
             placeItemInRoom(room, 1, droptable_idx)
 
             // Chance to place another item based on difficulty.
-            var item_chance = 10 * difficulty
+            var item_chance = 10 * _difficulty
             if (Tools.random.int(0, 100) < item_chance) {
                 droptable_idx = Math.max(0, droptable_idx - 1)
                 value = (value / 2).ceil
@@ -912,8 +913,10 @@ class Dungeon is Level {
             Render.text(font, "%(room.id)", pix2.x, pix2.y + 10, 1.0, 0xFFFF00FF, 0x0, Render.spriteCenter)
         }
     }
+
+    difficulty {_difficulty}
 }
 
-import "Types" for SType, DType, Layer
+import "Types" for SType, DType, Group
 import "create" for Create
 import "directions" for Directions
