@@ -1,3 +1,6 @@
+System.print("09 + Create")
+
+
 import "xs" for Data, Input, Render
 import "xs_math"for Math, Bits, Vec2, Color
 import "xs_ec"for Entity, Component
@@ -5,9 +8,8 @@ import "xs_components" for Transform, Body, Renderable, Sprite, GridSprite, Anim
 import "xs_tools" for Tools
 import "random" for Random
 
+// No extra imports.
 import "types" for SType, OType, DType, Group
-import "components" for Character, Monster, OverworldTile, DungeonTile, Level, Stats, Amount
-import "hero" for Hero
 
 /// This class is used to create entities in the game
 /// by adding components to them
@@ -244,5 +246,10 @@ class Create {
 }
 
 
+// Already in module registry.
 import "gameplay" for Gameplay
+import "components" for Monster, OverworldTile, DungeonTile, Level, Stats, Amount
+import "hero" for Hero
 
+
+System.print("09 - Create")

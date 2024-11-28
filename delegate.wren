@@ -1,3 +1,6 @@
+System.print("06 + Delegate")
+
+
 class Delegate {
     construct new() {
         _listeners = {}
@@ -31,3 +34,6 @@ class PerkTrigger is Delegate {
         for (listener in listeners) listener.value.call(packet)
     }
 }
+
+
+System.print("06 - Delegate")

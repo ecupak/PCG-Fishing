@@ -1,5 +1,14 @@
+System.print("14 + Sub Menus")
+
+
 import "xs_math" for Vec2
+
+// No extra imports.
+import "types" for SType, GType
+
+// For inheritance.
 import "menu" for SubMenu
+
 
 /// Displays information about the highlighted item.
 class InventoryInfoMenu is SubMenu {
@@ -185,7 +194,12 @@ class PoleCraftingInfoMenu is SubMenu {
     }
 }
 
-import "types" for SType, GType
-import "craft" for Craft
+
+// Already in module registry.
+import "components" for Gear
+import "hero" for Hero
 import "create" for Create
-import "components" for Hero, Gear
+import "craft" for Craft
+
+
+System.print("14 - Sub Menus")

@@ -1,9 +1,13 @@
+System.print("01 + Game")
+
+
 import "xs" for Data, Input, Render
 import "xs_ec"for Entity
 import "xs_tools" for Tools
 import "background" for Background
 
-// There needs class called Game in you main file
+
+// There needs to be a class called Game in you main file
 class Game {
 
     // There are the states of the game
@@ -70,9 +74,15 @@ class Game {
         __background.render()
         Gameplay.render()
     }
- }
+}
 
-/// Import classes from other files that might have circular dependencies (import each other)
+
+// New modules.
 import "gameplay" for Level, OverworldTile, DungeonTile, Gameplay
+
+// Now in module registry from "gameplay".
 import "create" for Create
 import "craft" for Craft
+
+
+System.print("01 - Game")

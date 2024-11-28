@@ -1,8 +1,18 @@
+System.print("14 + Dungeon")
+
+
 import "xs" for Data, Render
 import "xs_math" for Math, Vec2
 import "xs_containers" for Grid, SparseGrid, Queue
 import "xs_tools" for Tools
-import "components" for Level, LevelTile, DungeonTile
+
+// No extra imports.
+import "types" for SType, DType, Group
+import "directions" for Directions
+
+// For inheritance.
+import "components" for Level
+
 
 class Room {
     construct new() {
@@ -917,6 +927,10 @@ class Dungeon is Level {
     difficulty {_difficulty}
 }
 
-import "Types" for SType, DType, Group
+
+// Already in module registry.
+import "components" for LevelTile, DungeonTile
 import "create" for Create
-import "directions" for Directions
+
+
+System.print("14 - Dungeon")

@@ -1,9 +1,16 @@
+System.print("08 + Hero")
+
+
 import "xs" for Data, Input, Render
 import "xs_ec" for Entity, Component
 import "xs_math"for Math, Vec2, Bits
 import "xs_tools" for Tools
 
-// For inheritance
+// No extra imports.
+import "types" for DType, OType, SType, Group
+import "directions" for Directions
+
+// For inheritance.
 import "components" for Character
 
 
@@ -721,12 +728,16 @@ class HeroExploring is HeroState {
 }
 
 
-import "menu" for Menu
-import "types" for DType, OType, SType, Group
+// Already in module registry.
+import "gameplay" for Gameplay
+import "components" for LevelTile, Stats, Amount, Gear
+
+// New modules.
 import "create" for Create
 import "craft" for Craft
+import "menu" for Menu
 import "dungeon" for Dungeon
-import "gameplay" for Gameplay
 import "overworld" for Overworld
-import "directions" for Directions
-import "components" for LevelTile, Stats, Amount, Gear
+
+
+System.print("08 - Hero")

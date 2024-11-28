@@ -1,5 +1,13 @@
+System.print("12 + Menu")
+
+
 import "xs" for Data, Render, Input
 import "xs_math" for Math, Vec2
+
+// No extra imports.
+import "directions" for Directions
+import "visor" for Visor
+
 
 class Menu {
     /// Open starting menus.
@@ -517,9 +525,11 @@ class SubMenu {
     text_colors=(v) {_text_colors = v}
 }
 
-import "directions" for Directions
-import "visor" for Visor
+
 import "menus" for MainMenu, InventoryMenu, CraftingMenu
 import "menus" for ToolMenu, ShopMenu, InnMenu
 import "menus" for DungeonMenu, LevelUpMenu, GameOverMenu
 import "menus" for PoleCraftingMenu
+
+
+System.print("12 - Menu")

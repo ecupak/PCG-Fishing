@@ -1,7 +1,15 @@
+System.print("02 + Gameplay")
+
+
 import "xs" for Data, Render
 import "xs_ec" for Entity
 import "xs_math" for Bits
 import "xs_tools" for Tools // temp
+
+// No extra imports.
+import "types" for SType, OType, DType, Group
+import "visor" for Visor
+
 
 /// Combines level and character logic to create the gameplay
 class Gameplay {
@@ -498,10 +506,16 @@ class Gameplay {
     }
 }
 
-import "menu" for Menu
-import "visor" for Visor
-import "types" for SType, OType, DType, Group
+
+// New modules.
+import "components" for Level, OverworldTile, DungeonTile, Monster, Stats
+
+// Now in module registry from "components".
+import "hero" for Hero
 import "create" for Create
+import "menu" for Menu
 import "dungeon" for Dungeon
 import "overworld" for Overworld
-import "components" for Level, OverworldTile, DungeonTile, Hero, Monster, Stats
+
+
+System.print("02 - Gameplay")

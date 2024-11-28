@@ -1,3 +1,6 @@
+System.print("11 + Perks")
+
+
 import "xs_ec" for Component
 
 
@@ -54,5 +57,8 @@ class RichesPerk is Perk {
     }
 }
 
-
+// Already in module registry.
 import "components" for Stats, Character
+
+
+System.print("11 - Perks")

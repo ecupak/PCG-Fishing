@@ -1,7 +1,15 @@
+System.print("16 + Pond")
+
+
 import "xs" for Data
 import "xs_containers" for Grid 
 import "xs_math" for Math, Vec2, Bits
 import "xs_tools" for Tools
+
+// No extra imports.
+import "types" for OType, Group
+import "directions" for Directions
+
 
 class Pond {
     static canExpand(expansion_chance) { Tools.random.int(0, 100) <= expansion_chance }
@@ -160,6 +168,9 @@ class Pond {
     }
 }
 
-import "types" for OType, Group
-import "directions" for Directions
+
+// Already in module registry.
 import "components" for LevelTile
+
+
+System.print("16 - Pond")

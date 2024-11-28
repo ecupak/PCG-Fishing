@@ -1,4 +1,11 @@
+System.print("10 + Craft")
+
+
 import "xs_ec" for Entity, Component
+
+// No extra imports.
+import "types" for SType, GType, Group
+
 
 class Craft {
     static getMaterials() {__materials}
@@ -253,6 +260,11 @@ class Craft {
     }
 }
 
-import "types" for SType, GType, Group
-import "perks" for RichesPerk
+// Already in module registry.
 import "components" for Gear
+
+// New modules.
+import "perks" for RichesPerk
+
+
+System.print("10 - Craft")

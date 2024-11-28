@@ -1,6 +1,14 @@
+System.print("15 + Overworld")
+
+
 import "xs_math" for Vec2, Bits
 import "xs_tools" for Tools
 import "components" for Level, LevelTile
+
+// No extra imports.
+import "types" for SType, OType, Group
+import "directions" for Directions
+
 
 class Overworld is Level {
     construct new(width, height) {
@@ -196,8 +204,13 @@ class Overworld is Level {
     debugRender(font) { }
 }
 
+
+// Already in module registry.
 import "gameplay" for Gameplay
-import "pond" for Pond
-import "types" for SType, OType, Group
 import "create" for Create
-import "directions" for Directions
+
+// New modules.
+import "pond" for Pond
+
+
+System.print("15 - Overworld")

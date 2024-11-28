@@ -1,8 +1,16 @@
+System.print("13 + Menus")
+
+
 import "xs_math" for Vec2, Bits
 import "xs_tools" for Tools
 import "xs_ec" for Entity
 
+// No extra imports.
+import "types" for SType, GType, Group
+
+// For inheritance.
 import "menu" for BaseMenu
+
 
 class MainMenu is BaseMenu {
     construct new(initial_cursor_idx) {
@@ -740,10 +748,15 @@ class ConfirmMenu is BaseMenu {
     }
 }
 
-import "hero" for Inventory
-import "types" for SType, GType, Group
+
+// Already in module registry.
+import "gameplay" for Gameplay
+import "hero" for Hero, Inventory
 import "create" for Create
 import "craft" for Craft, Gear
-import "gameplay" for Gameplay
-import "components" for Hero
+
+// New modules.
 import "submenus" for InventoryInfoMenu, ToolInfoMenu, PoleCraftingInfoMenu, PoleInfoMenu
+
+
+System.print("13 - Menus")

@@ -1,3 +1,6 @@
+System.print("03 + Types")
+
+
 class Group {
     static none         { 0 }
     static shared       { 1 }
@@ -135,3 +138,6 @@ class DType {
     static hero_block       { obstacle | enemy }
     static monster_block    { obstacle | enemy }    
 }
+
+
+System.print("03 - Types")

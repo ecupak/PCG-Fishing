@@ -1,3 +1,6 @@
+System.print("04 + Visor")
+
+
 import "xs" for Data, Render
 import "xs_math" for Vec2
 import "xs_tools" for ShapeBuilder
@@ -61,3 +64,6 @@ class Visor {
         )
     }
 }
+
+
+System.print("04 - Visor")

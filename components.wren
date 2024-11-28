@@ -1,13 +1,19 @@
+System.print("05 + Components")
+
+
 import "xs_ec" for Entity, Component
 import "xs" for Data, Input, Render
 import "xs_math"for Math, Bits, Vec2, Color
 import "xs_containers" for Grid, SparseGrid, Queue, RingBuffer
 import "xs_tools" for Tools
 
-import "delegate" for PerkTrigger
+// No extra imports.
 import "types" for SType, DType, Group
+import "delegate" for PerkTrigger
+import "directions" for Directions
 
 
+/// Tile data for the "static" layer (vs the "dynamic" tiles on top)
 class LevelTile { // under tile
     construct new() {
         _type = 0
@@ -31,6 +37,7 @@ class LevelTile { // under tile
     group {_group}
     rotation {_rotation}
 }
+
 
 /// Contains the level data and the logic to manipulate it.
 /// It's completely static and should be used as a singleton.
@@ -99,6 +106,7 @@ class Level {
 
     grid { _grid }
 }
+
 
 /// A compenent that represents a tile in the level.
 /// It is used to store the position of the tile in the level,
@@ -175,6 +183,7 @@ class OverworldTile is Component {
     y { _y }
     pos { Vec2.new(_x, _y) }
 }
+
 
 class DungeonTile is Component {
     /// Must be called from the game before using the Tile class.
@@ -285,6 +294,7 @@ class Stats is Component {
     drop=(v) { _drop = v }
 }
 
+
 /// A base class for all characters in the game.
 /// Used by the hero and the monsters.
 class Character is Component {
@@ -375,6 +385,7 @@ class Character is Component {
     level {_level}
     level=(v) {_level = v}
 }
+
 
 /// A class that represents the monsters in the game.
 /// The monsters are controlled by the computer and the class
@@ -490,6 +501,7 @@ class Monster is Character {
     }
 }
 
+
 class Amount is Component {
     construct new(amount) {
         _amount = amount
@@ -497,6 +509,7 @@ class Amount is Component {
 
     amount {_amount}
 }
+
 
 class Gear is Component {
     construct new(id, part, material, perk, perk_slots) {
@@ -539,12 +552,20 @@ class Gear is Component {
 }
 
 
-import "menu" for Menu
-//import "hero" for Inventory, Equipment, HeroWalking, HeroCasting, HeroCutting, HeroMining, HeroDigging, HeroExploring
-import "hero" for Hero
+// Already in module registry.
+import "gameplay" for Gameplay
+
+// New modules.
+import "hero" for Hero // must be imported before create
+
+// Now in module registry from "hero".
+import "create" for Create
 import "craft" for Craft
 import "perks" for RichesPerk
-import "create" for Create
-import "dungeon" for Dungeon
-import "directions" for Directions
-import "gameplay" for Gameplay
+import "menu" for Menu // imports Hero
+import "dungeon" for Dungeon // imports create
+
+//import "hero" for Inventory, Equipment, HeroWalking, HeroCasting, HeroCutting, HeroMining, HeroDigging, HeroExploring
+
+
+System.print("05 - Components")
